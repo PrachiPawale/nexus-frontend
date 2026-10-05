@@ -1,0 +1,188 @@
+<div class="notes-page">
+
+  <div class="page-header">
+
+    <div>
+      <span class="page-label">KNOWLEDGE</span>
+      <h1>Notes</h1>
+      <p>Capture your ideas, thoughts and important information.</p>
+    </div>
+
+    <button class="add-btn" (click)="openAddForm()">
+      + Add Note
+    </button>
+
+  </div>
+
+
+  <!-- Loading -->
+
+  <div class="state-message" *ngIf="loading">
+    Loading notes...
+  </div>
+
+
+  <!-- Error -->
+
+  <div class="state-message error" *ngIf="error && !loading">
+    {{ error }}
+  </div>
+
+
+  <!-- Empty -->
+
+  <div
+    class="empty-state"
+    *ngIf="!loading && !error && notes.length === 0"
+  >
+
+    <div class="empty-icon">✦</div>
+
+    <h2>No notes yet</h2>
+
+    <p>Create your first note to start building your knowledge base.</p>
+
+    <button class="add-btn" (click)="openAddForm()">
+      + Create Note
+    </button>
+
+  </div>
+
+
+  <!-- Notes -->
+
+  <div
+    class="notes-grid"
+    *ngIf="!loading && !error && notes.length > 0"
+  >
+
+    <div
+      class="note-card"
+      *ngFor="let item of notes"
+    >
+
+      <div class="note-top">
+
+        <span class="note-icon">✦</span>
+
+        <div class="note-actions">
+
+          <button
+            class="edit-btn"
+            (click)="openEditForm(item)"
+          >
+            Edit
+          </button>
+
+          <button
+            class="delete-btn"
+            (click)="deleteNote(item.id)"
+          >
+            Delete
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <h3>{{ item.title }}</h3>
+
+      <p class="note-content">
+        {{ item.content }}
+      </p>
+
+
+      <div class="note-footer">
+
+        <span *ngIf="item.updated_at">
+          Updated {{ item.updated_at | date:'mediumDate' }}
+        </span>
+
+        <span *ngIf="!item.updated_at && item.created_at">
+          Created {{ item.created_at | date:'mediumDate' }}
+        </span>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- Add / Edit Modal -->
+
+  <div class="modal-overlay" *ngIf="showForm">
+
+    <div class="note-modal">
+
+      <div class="modal-header">
+
+        <div>
+          <span class="page-label">
+            {{ editingNoteId ? 'UPDATE NOTE' : 'NEW NOTE' }}
+          </span>
+
+          <h2>
+            {{ editingNoteId ? 'Edit Note' : 'Create Note' }}
+          </h2>
+        </div>
+
+        <button
+          class="close-btn"
+          (click)="closeForm()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>Note Title</label>
+
+        <input
+          type="text"
+          [(ngModel)]="note.title"
+          placeholder="Enter note title"
+        />
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>Content</label>
+
+        <textarea
+          [(ngModel)]="note.content"
+          placeholder="Write your note..."
+        ></textarea>
+
+      </div>
+
+
+      <div class="modal-actions">
+
+        <button
+          class="cancel-btn"
+          (click)="closeForm()"
+        >
+          Cancel
+        </button>
+
+        <button
+          class="save-btn"
+          (click)="saveNote()"
+        >
+          {{ editingNoteId ? 'Update Note' : 'Create Note' }}
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

@@ -1,0 +1,323 @@
+.dashboard {
+  max-width: 1500px;
+  margin: auto;
+}
+
+
+/* WELCOME */
+
+.welcome-section {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  margin-bottom: 30px;
+}
+
+.eyebrow,
+.panel-eyebrow {
+  color: #6878ff;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  letter-spacing: 1.8px;
+}
+
+.welcome-section h1 {
+  margin: 8px 0 8px;
+
+  font-size: 30px;
+  letter-spacing: -0.8px;
+}
+
+.welcome-section p {
+  margin: 0;
+
+  max-width: 600px;
+
+  color: #727d94;
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.date-card {
+  padding: 15px 20px;
+
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.025);
+
+  text-align: right;
+}
+
+.date-card span {
+  display: block;
+
+  color: #687289;
+
+  font-size: 8px;
+  letter-spacing: 1.5px;
+}
+
+.date-card strong {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #43d7a2;
+
+  font-size: 11px;
+}
+
+
+/* STATS */
+
+.stats-grid {
+  display: grid;
+
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 15px;
+
+  margin-bottom: 18px;
+}
+
+.stat-card {
+  padding: 22px;
+
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 15px;
+
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.045),
+    rgba(255, 255, 255, 0.018)
+  );
+}
+
+.stat-label {
+  display: block;
+
+  color: #687289;
+
+  font-size: 9px;
+  letter-spacing: 1.5px;
+}
+
+.stat-card strong {
+  display: block;
+
+  margin-top: 10px;
+
+  font-size: 27px;
+}
+
+.stat-card small {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #667087;
+
+  font-size: 10px;
+}
+
+
+/* PANELS */
+
+.dashboard-grid {
+  display: grid;
+
+  grid-template-columns: 1.5fr 1fr;
+
+  gap: 18px;
+}
+
+.panel {
+  padding: 22px;
+
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 15px;
+
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  margin-bottom: 20px;
+}
+
+.panel-header h2 {
+  margin: 6px 0 0;
+
+  font-size: 16px;
+}
+
+.panel-header a {
+  color: #7683ff;
+
+  font-size: 10px;
+}
+
+
+/* TASKS */
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+
+  padding: 15px 0;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.task-item:last-child {
+  border-bottom: 0;
+}
+
+.task-status {
+  width: 25px;
+  height: 25px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #3b4354;
+  border-radius: 50%;
+
+  color: #7d879c;
+
+  font-size: 11px;
+}
+
+.task-status.completed {
+  border-color: #35d99a;
+
+  color: #35d99a;
+}
+
+.task-content {
+  flex: 1;
+}
+
+.task-content strong {
+  display: block;
+
+  font-size: 12px;
+}
+
+.task-content span {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #687289;
+
+  font-size: 9px;
+}
+
+.priority {
+  padding: 5px 8px;
+
+  border-radius: 5px;
+
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+.priority.high {
+  color: #ff8491;
+  background: rgba(255, 90, 110, 0.08);
+}
+
+.priority.medium {
+  color: #d2a75d;
+  background: rgba(220, 170, 80, 0.08);
+}
+
+
+/* GOALS */
+
+.goal {
+  margin-bottom: 22px;
+}
+
+.goal:last-child {
+  margin-bottom: 0;
+}
+
+.goal-top {
+  display: flex;
+  justify-content: space-between;
+
+  margin-bottom: 8px;
+}
+
+.goal-top strong {
+  font-size: 11px;
+}
+
+.goal-top span {
+  color: #7784ff;
+
+  font-size: 10px;
+}
+
+.progress {
+  height: 5px;
+
+  overflow: hidden;
+
+  border-radius: 10px;
+
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.progress-value {
+  height: 100%;
+
+  border-radius: 10px;
+
+  background: linear-gradient(90deg, #6677ff, #9a61ff);
+}
+
+
+/* RESPONSIVE */
+
+@media (max-width: 1000px) {
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+@media (max-width: 600px) {
+
+  .welcome-section {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome-section h1 {
+    font-size: 24px;
+  }
+
+}

@@ -1,0 +1,221 @@
+<div class="calendar-page">
+
+  <div class="page-header">
+
+    <div>
+      <span class="page-label">SCHEDULE</span>
+      <h1>Calendar</h1>
+      <p>Organize your events and schedule.</p>
+    </div>
+
+    <button class="add-btn" (click)="openAddForm()">
+      + Add Event
+    </button>
+
+  </div>
+
+
+  <!-- Loading -->
+
+  <div class="state-message" *ngIf="loading">
+    Loading calendar...
+  </div>
+
+
+  <!-- Error -->
+
+  <div class="state-message error" *ngIf="error && !loading">
+    {{ error }}
+  </div>
+
+
+  <!-- Empty -->
+
+  <div
+    class="empty-state"
+    *ngIf="!loading && !error && events.length === 0"
+  >
+
+    <div class="empty-icon">◷</div>
+
+    <h2>No events yet</h2>
+
+    <p>Create your first calendar event.</p>
+
+    <button class="add-btn" (click)="openAddForm()">
+      + Create Event
+    </button>
+
+  </div>
+
+
+  <!-- Events -->
+
+  <div
+    class="event-list"
+    *ngIf="!loading && !error && events.length > 0"
+  >
+
+    <div
+      class="event-card"
+      *ngFor="let item of events"
+    >
+
+      <div class="event-time">
+
+        <span class="time">
+          {{ item.start_time | date:'shortTime' }}
+        </span>
+
+        <span class="date">
+          {{ item.start_time | date:'mediumDate' }}
+        </span>
+
+      </div>
+
+
+      <div class="event-line"></div>
+
+
+      <div class="event-info">
+
+        <h3>{{ item.title }}</h3>
+
+        <p *ngIf="item.description">
+          {{ item.description }}
+        </p>
+
+        <span *ngIf="item.end_time" class="end-time">
+          Ends {{ item.end_time | date:'shortTime' }}
+        </span>
+
+      </div>
+
+
+      <div class="event-actions">
+
+        <button
+          class="edit-btn"
+          (click)="openEditForm(item)"
+        >
+          Edit
+        </button>
+
+        <button
+          class="delete-btn"
+          (click)="deleteEvent(item.id)"
+        >
+          Delete
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- Modal -->
+
+  <div class="modal-overlay" *ngIf="showForm">
+
+    <div class="event-modal">
+
+      <div class="modal-header">
+
+        <div>
+          <span class="page-label">
+            {{ editingEventId ? 'UPDATE EVENT' : 'NEW EVENT' }}
+          </span>
+
+          <h2>
+            {{ editingEventId ? 'Edit Event' : 'Create Event' }}
+          </h2>
+        </div>
+
+        <button
+          class="close-btn"
+          (click)="closeForm()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>Event Title</label>
+
+        <input
+          type="text"
+          [(ngModel)]="event.title"
+          placeholder="Enter event title"
+        />
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>Description</label>
+
+        <textarea
+          [(ngModel)]="event.description"
+          placeholder="Add event details"
+        ></textarea>
+
+      </div>
+
+
+      <div class="form-row">
+
+        <div class="form-group">
+
+          <label>Start Time</label>
+
+          <input
+            type="datetime-local"
+            [(ngModel)]="event.start_time"
+          />
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>End Time</label>
+
+          <input
+            type="datetime-local"
+            [(ngModel)]="event.end_time"
+          />
+
+        </div>
+
+      </div>
+
+
+      <div class="modal-actions">
+
+        <button
+          class="cancel-btn"
+          (click)="closeForm()"
+        >
+          Cancel
+        </button>
+
+        <button
+          class="save-btn"
+          (click)="saveEvent()"
+        >
+          {{ editingEventId ? 'Update Event' : 'Create Event' }}
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

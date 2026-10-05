@@ -1,0 +1,272 @@
+.notes-page {
+  padding: 32px;
+  min-height: calc(100vh - 80px);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.page-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #7f8cff;
+  margin-bottom: 8px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 34px;
+  color: #ffffff;
+}
+
+.page-header p {
+  margin-top: 8px;
+  color: #8f96aa;
+}
+
+.add-btn,
+.save-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  background: #6675ff;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-btn:hover,
+.save-btn:hover {
+  opacity: 0.85;
+}
+
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.note-card {
+  min-height: 220px;
+  padding: 22px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 15px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.note-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(102, 117, 255, 0.4);
+}
+
+.note-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.note-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 35px;
+  height: 35px;
+  border-radius: 9px;
+  background: rgba(102, 117, 255, 0.14);
+  color: #8995ff;
+}
+
+.note-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.edit-btn,
+.delete-btn,
+.cancel-btn,
+.close-btn {
+  border: none;
+  cursor: pointer;
+}
+
+.edit-btn,
+.delete-btn {
+  padding: 7px 10px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.07);
+  color: white;
+}
+
+.delete-btn {
+  color: #ff7185;
+}
+
+.note-card h3 {
+  margin: 20px 0 10px;
+  color: white;
+  font-size: 18px;
+}
+
+.note-content {
+  color: #9299ad;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.note-footer {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: #626a7d;
+  font-size: 11px;
+}
+
+.state-message,
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #8f96aa;
+}
+
+.error {
+  color: #ff7185;
+}
+
+.empty-icon {
+  width: 55px;
+  height: 55px;
+  margin: 0 auto 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(102, 117, 255, 0.15);
+  color: #8290ff;
+  font-size: 24px;
+}
+
+.empty-state h2 {
+  color: white;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.note-modal {
+  width: 100%;
+  max-width: 600px;
+  padding: 28px;
+  background: #151824;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 25px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: white;
+}
+
+.close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: white;
+  font-size: 22px;
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 7px;
+  color: #aeb5c7;
+  font-size: 13px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 9px;
+  outline: none;
+  background: #0e111b;
+  color: white;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.form-group textarea {
+  min-height: 220px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: #6675ff;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.cancel-btn {
+  padding: 11px 18px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #c5cada;
+}
+
+@media (max-width: 1000px) {
+  .notes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 650px) {
+
+  .notes-page {
+    padding: 20px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    gap: 20px;
+    flex-direction: column;
+  }
+
+  .notes-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,249 @@
+<div class="tasks-page">
+
+  <div class="page-header">
+
+    <div>
+      <span class="page-label">PRODUCTIVITY</span>
+      <h1>Tasks</h1>
+      <p>Manage your work and stay focused.</p>
+    </div>
+
+    <button class="add-btn" (click)="openAddForm()">
+      + Add Task
+    </button>
+
+  </div>
+
+
+  <!-- Loading -->
+
+  <div class="state-message" *ngIf="loading">
+    Loading tasks...
+  </div>
+
+
+  <!-- Error -->
+
+  <div class="state-message error" *ngIf="error && !loading">
+    {{ error }}
+  </div>
+
+
+  <!-- Empty -->
+
+  <div
+    class="empty-state"
+    *ngIf="!loading && !error && tasks.length === 0"
+  >
+
+    <div class="empty-icon">✓</div>
+
+    <h2>No tasks yet</h2>
+
+    <p>Create your first task to get started.</p>
+
+    <button class="add-btn" (click)="openAddForm()">
+      + Create Task
+    </button>
+
+  </div>
+
+
+  <!-- Task List -->
+
+  <div
+    class="task-list"
+    *ngIf="!loading && !error && tasks.length > 0"
+  >
+
+    <div
+      class="task-card"
+      *ngFor="let item of tasks"
+    >
+
+      <div class="task-main">
+
+        <div class="task-status"
+             [class.completed]="item.status === 'completed'">
+        </div>
+
+        <div class="task-info">
+
+          <h3>{{ item.title }}</h3>
+
+          <p *ngIf="item.description">
+            {{ item.description }}
+          </p>
+
+          <div class="task-meta">
+
+            <span
+              class="priority"
+              [class.high]="item.priority === 'high'"
+              [class.medium]="item.priority === 'medium'"
+              [class.low]="item.priority === 'low'"
+            >
+              {{ item.priority }}
+            </span>
+
+            <span class="status">
+              {{ item.status }}
+            </span>
+
+            <span *ngIf="item.due_date">
+              Due:
+              {{ item.due_date | date:'medium' }}
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="task-actions">
+
+        <button
+          class="edit-btn"
+          (click)="openEditForm(item)"
+        >
+          Edit
+        </button>
+
+        <button
+          class="delete-btn"
+          (click)="deleteTask(item.id)"
+        >
+          Delete
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- Add / Edit Modal -->
+
+  <div class="modal-overlay" *ngIf="showForm">
+
+    <div class="task-modal">
+
+      <div class="modal-header">
+
+        <div>
+          <span class="page-label">
+            {{ editingTaskId ? 'UPDATE TASK' : 'NEW TASK' }}
+          </span>
+
+          <h2>
+            {{ editingTaskId ? 'Edit Task' : 'Create Task' }}
+          </h2>
+        </div>
+
+        <button
+          class="close-btn"
+          (click)="closeForm()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>Task Title</label>
+
+        <input
+          type="text"
+          [(ngModel)]="task.title"
+          placeholder="Enter task title"
+        />
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>Description</label>
+
+        <textarea
+          [(ngModel)]="task.description"
+          placeholder="Add a description"
+        ></textarea>
+
+      </div>
+
+
+      <div class="form-row">
+
+        <div class="form-group">
+
+          <label>Priority</label>
+
+          <select [(ngModel)]="task.priority">
+
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+
+          </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>Status</label>
+
+          <select [(ngModel)]="task.status">
+
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>Due Date</label>
+
+        <input
+          type="datetime-local"
+          [(ngModel)]="task.due_date"
+        />
+
+      </div>
+
+
+      <div class="modal-actions">
+
+        <button
+          class="cancel-btn"
+          (click)="closeForm()"
+        >
+          Cancel
+        </button>
+
+        <button
+          class="save-btn"
+          (click)="saveTask()"
+        >
+          {{ editingTaskId ? 'Update Task' : 'Create Task' }}
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

@@ -1,0 +1,285 @@
+<div class="goals-page">
+
+  <!-- HEADER -->
+  <div class="page-header">
+
+    <div>
+      <span class="page-label">PROGRESS</span>
+
+      <h1>Goals</h1>
+
+      <p>
+        Track your objectives and turn plans into progress.
+      </p>
+    </div>
+
+    <button
+      class="add-btn"
+      (click)="openAddForm()"
+    >
+      + Add Goal
+    </button>
+
+  </div>
+
+
+  <!-- LOADING -->
+  <div
+    class="state-message"
+    *ngIf="loading"
+  >
+    Loading goals...
+  </div>
+
+
+  <!-- ERROR -->
+  <div
+    class="state-message error"
+    *ngIf="error && !loading"
+  >
+    {{ error }}
+  </div>
+
+
+  <!-- EMPTY STATE -->
+  <div
+    class="empty-state"
+    *ngIf="!loading && !error && goals.length === 0"
+  >
+
+    <div class="empty-icon">
+      ◎
+    </div>
+
+    <h2>No goals yet</h2>
+
+    <p>
+      Create your first goal and start tracking your progress.
+    </p>
+
+    <button
+      class="add-btn"
+      (click)="openAddForm()"
+    >
+      + Create Goal
+    </button>
+
+  </div>
+
+
+  <!-- GOALS -->
+  <div
+    class="goals-grid"
+    *ngIf="!loading && !error && goals.length > 0"
+  >
+
+    <div
+      class="goal-card"
+      *ngFor="let item of goals"
+    >
+
+      <!-- CARD HEADER -->
+      <div class="goal-top">
+
+        <div class="goal-icon">
+          ◎
+        </div>
+
+        <div class="goal-actions">
+
+          <button
+            class="edit-btn"
+            (click)="openEditForm(item)"
+          >
+            Edit
+          </button>
+
+          <button
+            class="delete-btn"
+            (click)="deleteGoal(item.id)"
+          >
+            Delete
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- TITLE -->
+      <h3>
+        {{ item.title }}
+      </h3>
+
+
+      <!-- DESCRIPTION -->
+      <p class="goal-description">
+        {{ item.description }}
+      </p>
+
+
+      <!-- PROGRESS -->
+      <div class="progress-section">
+
+        <div class="progress-header">
+
+          <span>Progress</span>
+
+          <strong>
+            {{ item.progress || 0 }}%
+          </strong>
+
+        </div>
+
+        <div class="progress-bar">
+
+          <div
+            class="progress-fill"
+            [style.width.%]="item.progress || 0"
+          ></div>
+
+        </div>
+
+      </div>
+
+
+      <!-- FOOTER -->
+      <div class="goal-footer">
+
+        <span *ngIf="item.target_date">
+          Target:
+          {{ item.target_date | date:'mediumDate' }}
+        </span>
+
+        <span *ngIf="!item.target_date">
+          No target date
+        </span>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- MODAL -->
+  <div
+    class="modal-overlay"
+    *ngIf="showForm"
+  >
+
+    <div class="goal-modal">
+
+
+      <!-- MODAL HEADER -->
+      <div class="modal-header">
+
+        <div>
+
+          <span class="page-label">
+            {{ editingGoalId ? 'UPDATE GOAL' : 'NEW GOAL' }}
+          </span>
+
+          <h2>
+            {{ editingGoalId ? 'Edit Goal' : 'Create Goal' }}
+          </h2>
+
+        </div>
+
+        <button
+          class="close-btn"
+          (click)="closeForm()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <!-- TITLE -->
+      <div class="form-group">
+
+        <label>
+          Goal Title
+        </label>
+
+        <input
+          type="text"
+          [(ngModel)]="goal.title"
+          placeholder="Enter your goal"
+        />
+
+      </div>
+
+
+      <!-- DESCRIPTION -->
+      <div class="form-group">
+
+        <label>
+          Description
+        </label>
+
+        <textarea
+          [(ngModel)]="goal.description"
+          placeholder="Describe your goal..."
+        ></textarea>
+
+      </div>
+
+
+      <!-- PROGRESS -->
+      <div class="form-group">
+
+        <label>
+          Progress: {{ goal.progress }}%
+        </label>
+
+        <input
+          type="range"
+          min="0"
+          max="100"
+          [(ngModel)]="goal.progress"
+        />
+
+      </div>
+
+
+      <!-- TARGET DATE -->
+      <div class="form-group">
+
+        <label>
+          Target Date
+        </label>
+
+        <input
+          type="date"
+          [(ngModel)]="goal.target_date"
+        />
+
+      </div>
+
+
+      <!-- ACTIONS -->
+      <div class="modal-actions">
+
+        <button
+          class="cancel-btn"
+          (click)="closeForm()"
+        >
+          Cancel
+        </button>
+
+        <button
+          class="save-btn"
+          (click)="saveGoal()"
+        >
+          {{ editingGoalId ? 'Update Goal' : 'Create Goal' }}
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
