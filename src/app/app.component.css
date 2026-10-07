@@ -93,3 +93,136 @@
   }
 
 }
+
+/* =========================================
+   NEXUS JARVIS VOICE RESPONSE
+========================================= */
+
+.jarvis-response {
+  position: fixed;
+  right: 30px;
+  bottom: 120px;
+
+  width: 320px;
+  min-height: 80px;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  padding: 18px 20px;
+
+  background: rgba(10, 15, 30, 0.94);
+  border: 1px solid rgba(0, 255, 255, 0.45);
+  border-radius: 16px;
+
+  box-shadow:
+    0 0 20px rgba(0, 255, 255, 0.15),
+    inset 0 0 20px rgba(0, 255, 255, 0.03);
+
+  backdrop-filter: blur(14px);
+
+  z-index: 9999;
+
+  animation:
+    jarvisResponseIn 0.35s ease-out;
+}
+
+.jarvis-response-icon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border: 1px solid rgba(0, 255, 255, 0.6);
+  border-radius: 50%;
+
+  color: #00ffff;
+
+  font-size: 22px;
+
+  box-shadow:
+    0 0 12px rgba(0, 255, 255, 0.35);
+
+  animation: jarvisPulse 2s infinite;
+}
+
+.jarvis-response-content {
+  flex: 1;
+}
+
+.jarvis-response-title {
+  margin-bottom: 5px;
+
+  color: #00ffff;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: 2px;
+}
+
+.jarvis-response-text {
+  color: #ffffff;
+
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+/* Entry animation */
+
+@keyframes jarvisResponseIn {
+
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+}
+
+
+/* Glow animation */
+
+@keyframes jarvisPulse {
+
+  0% {
+    box-shadow:
+      0 0 8px rgba(0, 255, 255, 0.25);
+  }
+
+  50% {
+    box-shadow:
+      0 0 20px rgba(0, 255, 255, 0.55);
+  }
+
+  100% {
+    box-shadow:
+      0 0 8px rgba(0, 255, 255, 0.25);
+  }
+
+}
+
+
+/* Mobile */
+
+@media (max-width: 600px) {
+
+  .jarvis-response {
+    right: 15px;
+    left: 15px;
+    bottom: 110px;
+
+    width: auto;
+  }
+
+}

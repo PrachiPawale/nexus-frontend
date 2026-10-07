@@ -106,6 +106,28 @@
 
 </div>
 
+<!-- JARVIS VOICE RESPONSE -->
+<div
+  class="jarvis-response"
+  *ngIf="voiceResponseVisible"
+>
+  <div class="jarvis-response-icon">
+    ✦
+  </div>
+
+  <div class="jarvis-response-content">
+
+    <div class="jarvis-response-title">
+      NEXUS
+    </div>
+
+    <div class="jarvis-response-text">
+      {{ voiceResponse }}
+    </div>
+
+  </div>
+</div>
+
 
 <!-- NEXUS VOICE ASSISTANT -->
 
