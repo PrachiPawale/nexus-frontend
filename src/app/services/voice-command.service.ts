@@ -13,207 +13,68 @@ export class VoiceCommandService {
   parseCommand(text: string): VoiceCommand {
     const command = text.toLowerCase().trim();
 
-    // TASK
-    if (
-      command.includes("task") ||
-      command.includes("todo") ||
-      command.includes("to-do")
+    const result = (
+      type: VoiceCommand["type"],
+      action: VoiceCommand["action"]
+    ): VoiceCommand => ({
+      type,
+      action,
+      text,
+    });
+
+    // --------------------------------
+    // DETECT MODULE
+    // --------------------------------
+
+    let type: VoiceCommand["type"] = "unknown";
+
+    if (/\b(tasks?|todos?|to-dos?)\b/i.test(command)) {
+      type = "task";
+    } else if (/\b(notes?)\b/i.test(command)) {
+      type = "note";
+    } else if (/\b(goals?)\b/i.test(command)) {
+      type = "goal";
+    } else if (
+      /\b(calendar|meeting|meetings|event|events|schedule)\b/i.test(command)
     ) {
-      if (
-        command.includes("create") ||
-        command.includes("add") ||
-        command.includes("make")
-      ) {
-        return {
-          type: "task",
-          action: "create",
-          text: text,
-        };
-      }
-
-      if (
-        command.includes("show") ||
-        command.includes("list") ||
-        command.includes("view")
-      ) {
-        return {
-          type: "task",
-          action: "show",
-          text: text,
-        };
-      }
-      if (
-        command.includes("update") ||
-        command.includes("edit") ||
-        command.includes("change")
-      ) {
-        return {
-          type: "task",
-          action: "update",
-          text: text,
-        };
-      }
-      if (command.includes("delete") || command.includes("remove")) {
-        return {
-          type: "task",
-          action: "delete",
-          text: text,
-        };
-      }
+      type = "calendar";
     }
 
-    // NOTE
-    if (command.includes("note") || command.includes("notes")) {
-      if (
-        command.includes("create") ||
-        command.includes("add") ||
-        command.includes("write") ||
-        command.includes("make")
-      ) {
-        return {
-          type: "note",
-          action: "create",
-          text: text,
-        };
-      }
+    // --------------------------------
+    // DETECT ACTION
+    // --------------------------------
 
-      if (
-        command.includes("show") ||
-        command.includes("list") ||
-        command.includes("view")
-      ) {
-        return {
-          type: "note",
-          action: "show",
-          text: text,
-        };
-      }
+    let action: VoiceCommand["action"] = "unknown";
 
-      if (
-        command.includes("update") ||
-        command.includes("edit") ||
-        command.includes("change")
-      ) {
-        return {
-          type: "note",
-          action: "update",
-          text: text,
-        };
-      }
-
-      if (command.includes("delete") || command.includes("remove")) {
-        return {
-          type: "note",
-          action: "delete",
-          text: text,
-        };
-      }
+    // CREATE
+    if (/\b(create|add|make|write|set|book|schedule)\b/i.test(command)) {
+      action = "create";
     }
 
-    // GOAL
-    if (command.includes("goal") || command.includes("goals")) {
-      if (
-        command.includes("create") ||
-        command.includes("add") ||
-        command.includes("set") ||
-        command.includes("make")
-      ) {
-        return {
-          type: "goal",
-          action: "create",
-          text: text,
-        };
-      }
-
-      if (
-        command.includes("show") ||
-        command.includes("list") ||
-        command.includes("view")
-      ) {
-        return {
-          type: "goal",
-          action: "show",
-          text: text,
-        };
-      }
-
-      if (
-        command.includes("update") ||
-        command.includes("edit") ||
-        command.includes("change")
-      ) {
-        return {
-          type: "goal",
-          action: "update",
-          text: text,
-        };
-      }
-
-      if (command.includes("delete") || command.includes("remove")) {
-        return {
-          type: "goal",
-          action: "delete",
-          text: text,
-        };
-      }
-    }
-
-    // CALENDAR
-    if (
-      command.includes("calendar") ||
-      command.includes("meeting") ||
-      command.includes("event") ||
-      command.includes("schedule")
+    // SHOW
+    else if (
+      /\b(show|list|view|display|find|what|which|upcoming)\b/i.test(command) ||
+      /\b(my tasks|my notes|my goals|my schedule|my meetings)\b/i.test(command)
     ) {
-      if (
-        command.includes("create") ||
-        command.includes("add") ||
-        command.includes("schedule") ||
-        command.includes("book")
-      ) {
-        return {
-          type: "calendar",
-          action: "create",
-          text: text,
-        };
-      }
-
-      if (
-        command.includes("show") ||
-        command.includes("list") ||
-        command.includes("view")
-      ) {
-        return {
-          type: "calendar",
-          action: "show",
-          text: text,
-        };
-      }
-      if (
-        command.includes("update") ||
-        command.includes("edit") ||
-        command.includes("change")
-      ) {
-        return {
-          type: "calendar",
-          action: "update",
-          text: text,
-        };
-      }
-
-      if (command.includes("delete") || command.includes("remove")) {
-        return {
-          type: "calendar",
-          action: "delete",
-          text: text,
-        };
-      }
+      action = "show";
     }
 
-    return {
-      type: "unknown",
-      action: "unknown",
-      text: text,
-    };
+    // UPDATE
+    else if (
+      /\b(update|edit|change|modify|complete|finish|mark)\b/i.test(command)
+    ) {
+      action = "update";
+    }
+
+    // DELETE
+    else if (/\b(delete|remove|erase|cancel)\b/i.test(command)) {
+      action = "delete";
+    }
+
+    if (type === "unknown" || action === "unknown") {
+      return result("unknown", "unknown");
+    }
+
+    return result(type, action);
   }
 }

@@ -33,14 +33,33 @@ export class AppComponent {
   }
 
   showVoiceResponse(message: string): void {
+    // Display the response panel
     this.voiceResponse = message;
     this.voiceResponseVisible = true;
 
-    setTimeout(() => {
-      console.log("Hiding Nexus response");
+    // Stop any previous speech
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
 
+      // Create the speech response
+      const speech = new SpeechSynthesisUtterance(message);
+
+      // Voice settings
+      speech.lang = "en-IN";
+      speech.rate = 1;
+      speech.pitch = 0.9;
+      speech.volume = 1;
+
+      // Speak the response
+      window.speechSynthesis.speak(speech);
+    }
+
+    // Hide the response panel after 5 seconds
+    setTimeout(() => {
       this.voiceResponseVisible = false;
       this.voiceResponse = "";
+
+      console.log("Hiding Nexus response");
     }, 5000);
   }
 
@@ -325,16 +344,19 @@ export class AppComponent {
   createNoteFromVoice(text: string): void {
     let content = text;
 
-    // Remove command phrases
     const patterns = [
-      /create a note/i,
-      /create note/i,
-      /add a note/i,
-      /add note/i,
-      /write a note/i,
-      /write note/i,
-      /make a note/i,
-      /make note/i,
+      /create a note about /i,
+      /create note about /i,
+      /create a note /i,
+      /create note /i,
+      /add a note about /i,
+      /add note about /i,
+      /add a note /i,
+      /add note /i,
+      /write a note about /i,
+      /write note about /i,
+      /write a note /i,
+      /write note /i,
     ];
 
     for (const pattern of patterns) {
@@ -344,7 +366,7 @@ export class AppComponent {
     content = content.trim();
 
     if (!content) {
-      alert("I could not understand the note.");
+      this.showVoiceResponse("I could not understand the note content.");
       return;
     }
 
@@ -354,19 +376,17 @@ export class AppComponent {
       content: content,
     };
 
-    console.log("Creating note:", newNote);
-
     this.noteService.createNote(newNote).subscribe({
       next: (response) => {
         console.log("Note created successfully:", response);
 
-        alert(`Note created: ${content}`);
+        this.showVoiceResponse(`Note created successfully: ${content}`);
       },
 
       error: (err) => {
         console.error("Error creating note from voice:", err);
 
-        alert("Unable to create the note.");
+        this.showVoiceResponse("Unable to create the note.");
       },
     });
   }
@@ -374,16 +394,31 @@ export class AppComponent {
   createGoalFromVoice(text: string): void {
     let title = text;
 
-    // Remove command phrases
     const patterns = [
-      /create a goal/i,
-      /create goal/i,
-      /add a goal/i,
-      /add goal/i,
-      /set a goal/i,
-      /set goal/i,
-      /make a goal/i,
-      /make goal/i,
+      /create a goal to /i,
+      /create a goal for /i,
+      /create a goal called /i,
+      /create a goal named /i,
+      /create goal to /i,
+      /create goal for /i,
+      /create goal called /i,
+      /create goal named /i,
+      /add a goal to /i,
+      /add a goal for /i,
+      /add goal to /i,
+      /add goal for /i,
+      /set a goal to /i,
+      /set a goal for /i,
+      /set goal to /i,
+      /set goal for /i,
+      /make a goal to /i,
+      /make a goal for /i,
+      /create a goal /i,
+      /create goal /i,
+      /add a goal /i,
+      /add goal /i,
+      /set a goal /i,
+      /set goal /i,
     ];
 
     for (const pattern of patterns) {
@@ -393,7 +428,7 @@ export class AppComponent {
     title = title.trim();
 
     if (!title) {
-      this.showVoiceResponse("I could not understand the goal.");
+      this.showVoiceResponse("I could not understand the goal title.");
       return;
     }
 
@@ -411,13 +446,13 @@ export class AppComponent {
       next: (response) => {
         console.log("Goal created successfully:", response);
 
-        alert(`Goal created: ${title}`);
+        this.showVoiceResponse(`Goal created successfully: ${title}`);
       },
 
       error: (err) => {
         console.error("Error creating goal from voice:", err);
 
-        alert("Unable to create the goal.");
+        this.showVoiceResponse("Unable to create the goal.");
       },
     });
   }
@@ -527,31 +562,35 @@ export class AppComponent {
   }
 
   showGoalsFromVoice(): void {
-    console.log("Fetching goals for voice command...");
+    console.log("Fetching goals using voice command...");
 
     this.goalService.getGoals().subscribe({
-      next: (goals) => {
-        console.log("Goals received:", goals);
+      next: (goals: any[]) => {
+        console.log("Goals fetched:", goals);
 
         if (!goals || goals.length === 0) {
-          alert("You currently have no goals.");
+          this.showVoiceResponse("You currently have no saved goals.");
+
           return;
         }
 
-        const goalList = goals
-          .map((goal: any, index: number) => {
-            return `${index + 1}. ${goal.title}
-   Progress: ${goal.progress}%`;
-          })
-          .join("\n\n");
+        let message = `You have ${goals.length} goals. `;
 
-        alert(`Your goals:\n\n${goalList}`);
+        goals.forEach((goal, index) => {
+          message +=
+            `Goal ${index + 1}: ${goal.title}, ` +
+            `${goal.progress || 0} percent completed. `;
+        });
+
+        console.log("Goal summary:", message);
+
+        this.showVoiceResponse(message);
       },
 
       error: (err) => {
         console.error("Error fetching goals:", err);
 
-        alert("Unable to fetch your goals.");
+        this.showVoiceResponse("Unable to retrieve your goals.");
       },
     });
   }
@@ -942,8 +981,8 @@ export class AppComponent {
     const numberMatch = text.match(/\bgoal\s+(\d+)\b/i);
 
     if (!numberMatch) {
-      alert(
-        "Please specify the goal number. Example: Update goal 1 to Complete Nexus project"
+      this.showVoiceResponse(
+        "Please specify the goal number. Example: Update goal 1 progress to 75 percent."
       );
       return;
     }
@@ -951,50 +990,73 @@ export class AppComponent {
     const goalNumber = parseInt(numberMatch[1], 10);
 
     if (goalNumber <= 0) {
-      alert("Please provide a valid goal number.");
-      return;
-    }
-
-    let title = text;
-
-    title = title.replace(/update\s+goal\s+\d+/i, "");
-
-    title = title.replace(/edit\s+goal\s+\d+/i, "");
-
-    title = title.replace(/change\s+goal\s+\d+/i, "");
-
-    title = title.replace(/^\s*to\s+/i, "");
-
-    title = title.trim();
-
-    if (!title) {
-      this.showVoiceResponse("I could not understand the goal.");
+      this.showVoiceResponse("Please provide a valid goal number.");
       return;
     }
 
     this.goalService.getGoals().subscribe({
       next: (goals) => {
         if (!goals || goals.length === 0) {
-          alert("You currently have no goals.");
+          this.showVoiceResponse("You currently have no goals.");
           return;
         }
 
         if (goalNumber > goals.length) {
-          alert(`There are only ${goals.length} goals.`);
+          this.showVoiceResponse(`There are only ${goals.length} goals.`);
           return;
         }
 
         const existingGoal = goals[goalNumber - 1];
-
         const goalId = existingGoal.id;
 
-        const updatedGoal = {
+        // Check whether the command contains a progress percentage
+        const progressMatch = text.match(
+          /(?:progress|completion|completed)\s+(?:to\s+)?(\d{1,3})\s*(?:percent|%)/i
+        );
+
+        let updatedGoal: any = {
           user_id: existingGoal.user_id,
-          title: title,
+          title: existingGoal.title,
           description: existingGoal.description || "",
           progress: existingGoal.progress || 0,
           target_date: existingGoal.target_date || "",
         };
+
+        // Update progress
+        if (progressMatch) {
+          const progress = parseInt(progressMatch[1], 10);
+
+          if (progress < 0 || progress > 100) {
+            this.showVoiceResponse(
+              "Progress must be between 0 and 100 percent."
+            );
+            return;
+          }
+
+          updatedGoal.progress = progress;
+        } else {
+          // Otherwise, update the goal title
+          let title = text;
+
+          title = title.replace(/update\s+goal\s+\d+/i, "");
+
+          title = title.replace(/edit\s+goal\s+\d+/i, "");
+
+          title = title.replace(/change\s+goal\s+\d+/i, "");
+
+          title = title.replace(/^\s*to\s+/i, "");
+
+          title = title.trim();
+
+          if (!title) {
+            this.showVoiceResponse(
+              "I could not understand the new goal title."
+            );
+            return;
+          }
+
+          updatedGoal.title = title;
+        }
 
         console.log(
           "Updating goal:",
@@ -1008,13 +1070,21 @@ export class AppComponent {
           next: (response) => {
             console.log("Goal updated successfully:", response);
 
-            alert(`Goal ${goalNumber} updated successfully.`);
+            if (progressMatch) {
+              this.showVoiceResponse(
+                `Goal ${goalNumber} progress updated to ${updatedGoal.progress} percent.`
+              );
+            } else {
+              this.showVoiceResponse(
+                `Goal ${goalNumber} title updated successfully.`
+              );
+            }
           },
 
           error: (err) => {
             console.error("Error updating goal:", err);
 
-            alert("Unable to update the goal.");
+            this.showVoiceResponse("Unable to update the goal.");
           },
         });
       },
@@ -1022,7 +1092,7 @@ export class AppComponent {
       error: (err) => {
         console.error("Error fetching goals:", err);
 
-        alert("Unable to fetch your goals.");
+        this.showVoiceResponse("Unable to fetch your goals.");
       },
     });
   }
@@ -1031,31 +1101,32 @@ export class AppComponent {
     const numberMatch = text.match(/\bgoal\s+(\d+)\b/i);
 
     if (!numberMatch) {
-      alert("Please specify the goal number. Example: Delete goal 1");
+      this.showVoiceResponse(
+        "Please specify the goal number. Example: Delete goal 1."
+      );
       return;
     }
 
     const goalNumber = parseInt(numberMatch[1], 10);
 
     if (goalNumber <= 0) {
-      alert("Please provide a valid goal number.");
+      this.showVoiceResponse("Please provide a valid goal number.");
       return;
     }
 
     this.goalService.getGoals().subscribe({
       next: (goals) => {
         if (!goals || goals.length === 0) {
-          alert("You currently have no goals.");
+          this.showVoiceResponse("You currently have no goals.");
           return;
         }
 
         if (goalNumber > goals.length) {
-          alert(`There are only ${goals.length} goals.`);
+          this.showVoiceResponse(`There are only ${goals.length} goals.`);
           return;
         }
 
         const goal = goals[goalNumber - 1];
-
         const goalId = goal.id;
 
         const confirmed = window.confirm(
@@ -1063,8 +1134,7 @@ export class AppComponent {
         );
 
         if (!confirmed) {
-          console.log("Goal deletion cancelled.");
-
+          this.showVoiceResponse("Goal deletion cancelled.");
           return;
         }
 
@@ -1072,13 +1142,15 @@ export class AppComponent {
           next: (response) => {
             console.log("Goal deleted successfully:", response);
 
-            alert(`Goal ${goalNumber} deleted successfully.`);
+            this.showVoiceResponse(
+              `Goal ${goalNumber}, ${goal.title}, deleted successfully.`
+            );
           },
 
           error: (err) => {
             console.error("Error deleting goal:", err);
 
-            alert("Unable to delete the goal.");
+            this.showVoiceResponse("Unable to delete the goal.");
           },
         });
       },
@@ -1086,7 +1158,7 @@ export class AppComponent {
       error: (err) => {
         console.error("Error fetching goals:", err);
 
-        alert("Unable to fetch your goals.");
+        this.showVoiceResponse("Unable to fetch your goals.");
       },
     });
   }
