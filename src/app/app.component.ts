@@ -32,6 +32,8 @@ export class AppComponent {
     };
   }
 
+  currentUserId = 1;
+
   showVoiceResponse(message: string): void {
     // Display the response panel
     this.voiceResponse = message;
@@ -460,7 +462,7 @@ export class AppComponent {
   showTasksFromVoice(): void {
     console.log("Fetching tasks for voice command...");
 
-    this.taskService.getTasks().subscribe({
+    this.taskService.getTasks(this.currentUserId).subscribe({
       next: (tasks) => {
         console.log("Tasks received:", tasks);
 
@@ -629,7 +631,7 @@ export class AppComponent {
     console.log("Fetching existing task:", taskId);
 
     // First fetch the existing task
-    this.taskService.getTask(taskId).subscribe({
+    this.taskService.getTask(taskId, this.currentUserId).subscribe({
       next: (existingTask) => {
         console.log("Existing task:", existingTask);
 
@@ -679,7 +681,7 @@ export class AppComponent {
     const taskId = parseInt(idMatch[1], 10);
 
     // First fetch the task
-    this.taskService.getTask(taskId).subscribe({
+    this.taskService.getTask(taskId, this.currentUserId).subscribe({
       next: (task) => {
         console.log("Task selected for deletion:", task);
 
@@ -694,7 +696,7 @@ export class AppComponent {
         }
 
         // Delete only after confirmation
-        this.taskService.deleteTask(taskId).subscribe({
+        this.taskService.deleteTask(taskId, this.currentUserId).subscribe({
           next: (response) => {
             console.log("Task deleted successfully:", response);
 
