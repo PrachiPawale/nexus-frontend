@@ -41,6 +41,22 @@ export class VoiceCommandService {
     }
 
     // --------------------------------
+    // INFER TASK MODULE
+    // --------------------------------
+
+    // Recognize task updates even when the user doesn't say "task".
+    if (
+      type === "unknown" &&
+      /\b(update|edit|change|modify|complete|finish|mark)\b/i.test(command) &&
+      /\b(id|number)\s*\d+\b/i.test(command) &&
+      /\b(status|progress|priority|completed|pending|in-progress)\b/i.test(
+        command
+      )
+    ) {
+      type = "task";
+    }
+
+    // --------------------------------
     // DETECT ACTION
     // --------------------------------
 

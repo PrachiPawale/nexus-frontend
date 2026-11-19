@@ -11,6 +11,7 @@ import { TasksComponent } from './pages/tasks/tasks.component';
 import { CalendarComponent } from './pages/calendar/calendar.component';
 import { NotesComponent } from './pages/notes/notes.component';
 import { GoalsComponent } from './pages/goals/goals.component';
+import { OrbComponent } from './shared/orb/orb.component';
 
 @NgModule({
   declarations: [
@@ -19,7 +20,8 @@ import { GoalsComponent } from './pages/goals/goals.component';
     TasksComponent,
     CalendarComponent,
     NotesComponent,
-    GoalsComponent
+    GoalsComponent,
+    OrbComponent
   ],
   imports: [
     BrowserModule,

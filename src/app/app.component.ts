@@ -5,6 +5,7 @@ import { TaskService } from "./services/task.service";
 import { CalendarService } from "./services/calendar.service";
 import { NoteService } from "./services/note.service";
 import { GoalService } from "./services/goal.service";
+import { JarvisService } from "./services/jarvis.service";
 
 @Component({
   selector: "app-root",
@@ -15,13 +16,16 @@ export class AppComponent {
   voiceResponse = "";
   voiceResponseVisible = false;
   title = "frontend";
+  currentUserId = 1;
+
   constructor(
     public voiceService: VoiceService,
     public voiceCommandService: VoiceCommandService,
     public taskService: TaskService,
     public calendarService: CalendarService,
     public noteService: NoteService,
-    public goalService: GoalService
+    public goalService: GoalService,
+    public jarvisService: JarvisService
   ) {
     this.voiceService.onCommand = (text: string) => {
       const command = this.voiceCommandService.parseCommand(text);
@@ -32,37 +36,104 @@ export class AppComponent {
     };
   }
 
-  currentUserId = 1;
+  private cleanTextForSpeech(text: string): string {
+    return (
+      text
+        // Remove code blocks
+        .replace(/```[\s\S]*?```/g, "Code example omitted.")
+
+        // Remove inline code formatting
+        .replace(/`([^`]+)`/g, "$1")
+
+        // Remove Markdown headings
+        .replace(/^#{1,6}\s*/gm, "")
+
+        // Remove bold and italic formatting
+        .replace(/\*\*([^*]+)\*\*/g, "$1")
+        .replace(/\*([^*]+)\*/g, "$1")
+        .replace(/__([^_]+)__/g, "$1")
+        .replace(/_([^_]+)_/g, "$1")
+
+        // Remove Markdown links but keep their text
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+
+        // Remove bullet and blockquote symbols
+        .replace(/^\s*[-+>]\s*/gm, "")
+
+        // Remove remaining Markdown symbols
+        .replace(/[#*_~]/g, "")
+
+        // Clean extra whitespace
+        .replace(/\n{3,}/g, "\n\n")
+        .trim()
+    );
+  }
+
+  // ==========================================
+  // COMMON RESPONSE SYSTEM
+  // ==========================================
 
   showVoiceResponse(message: string): void {
-    // Display the response panel
     this.voiceResponse = message;
     this.voiceResponseVisible = true;
 
-    // Stop any previous speech
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
 
-      // Create the speech response
-      const speech = new SpeechSynthesisUtterance(message);
+      const speech = new SpeechSynthesisUtterance(
+        this.cleanTextForSpeech(message)
+      );
 
-      // Voice settings
+      // Get available system voices
+      const voices = window.speechSynthesis.getVoices();
+
+      // Prefer an English male-sounding voice if available
+      const preferredVoice = voices.find(
+        (voice) =>
+          /david|mark|guy|daniel|male/i.test(voice.name) &&
+          voice.lang.toLowerCase().startsWith("en")
+      );
+
+      // Fallback to any available English voice
+      const englishVoice = voices.find((voice) =>
+        voice.lang.toLowerCase().startsWith("en")
+      );
+
+      speech.voice = preferredVoice || englishVoice || null;
+
+      // Natural, deeper speaking settings
+      speech.rate = 0.95;
+      speech.pitch = 0.85;
+      speech.volume = 1;
+
       speech.lang = "en-IN";
       speech.rate = 1;
       speech.pitch = 0.9;
       speech.volume = 1;
 
-      // Speak the response
       window.speechSynthesis.speak(speech);
     }
 
-    // Hide the response panel after 5 seconds
-    setTimeout(() => {
-      this.voiceResponseVisible = false;
-      this.voiceResponse = "";
+    console.log("Nexus response:", message);
+  }
 
-      console.log("Hiding Nexus response");
-    }, 5000);
+  // Safely extract arrays from different API response formats.
+  private extractArray(response: any, key: string): any[] {
+    const possibleArrays = [
+      response,
+      response?.[key],
+      response?.data,
+      response?.data?.[key],
+    ];
+
+    return possibleArrays.find((item) => Array.isArray(item)) || [];
+  }
+
+  // Safely extract an individual object from API responses.
+  private extractObject(response: any, key: string): any {
+    return (
+      response?.[key] || response?.data?.[key] || response?.data || response
+    );
   }
 
   toggleVoice(): void {
@@ -77,116 +148,150 @@ export class AppComponent {
     const transcript = this.voiceService.transcript;
 
     if (!transcript) {
+      this.showVoiceResponse("I did not hear any command.");
       return;
     }
 
     const command = this.voiceCommandService.parseCommand(transcript);
 
     console.log("Recognized command:", command);
+
+    this.executeVoiceCommand(command);
   }
+
+  // ==========================================
+  // VOICE COMMAND ROUTER
+  // ==========================================
 
   executeVoiceCommand(command: any): void {
-    // TASK - CREATE
-    if (command.type === "task" && command.action === "create") {
-      this.createTaskFromVoice(command.text);
+    if (!command || !command.type || !command.action) {
+      this.showVoiceResponse("Sorry, I could not understand your command.");
       return;
     }
 
-    // TASK - SHOW
-    if (command.type === "task" && command.action === "show") {
-      this.showTasksFromVoice();
+    // TASKS
+    if (command.type === "task") {
+      switch (command.action) {
+        case "create":
+          this.createTaskFromVoice(command.text);
+          return;
+        case "show":
+          this.showTasksFromVoice();
+          return;
+        case "update":
+          this.updateTaskFromVoice(command.text);
+          return;
+        case "delete":
+          this.deleteTaskFromVoice(command.text);
+          return;
+      }
+    }
+
+    // CALENDAR
+    if (command.type === "calendar") {
+      switch (command.action) {
+        case "create":
+          this.createCalendarEventFromVoice(command.text);
+          return;
+        case "show":
+          this.showCalendarFromVoice();
+          return;
+        case "update":
+          this.updateCalendarFromVoice(command.text);
+          return;
+        case "delete":
+          this.deleteCalendarFromVoice(command.text);
+          return;
+      }
+    }
+
+    // NOTES
+    if (command.type === "note") {
+      switch (command.action) {
+        case "create":
+          this.createNoteFromVoice(command.text);
+          return;
+        case "show":
+          this.showNotesFromVoice();
+          return;
+        case "update":
+          this.updateNoteFromVoice(command.text);
+          return;
+        case "delete":
+          this.deleteNoteFromVoice(command.text);
+          return;
+      }
+    }
+
+    // GOALS
+    if (command.type === "goal") {
+      switch (command.action) {
+        case "create":
+          this.createGoalFromVoice(command.text);
+          return;
+        case "show":
+          this.showGoalsFromVoice();
+          return;
+        case "update":
+          this.updateGoalFromVoice(command.text);
+          return;
+        case "delete":
+          this.deleteGoalFromVoice(command.text);
+          return;
+      }
+    }
+
+    // GENERAL AI CONVERSATION
+    if (command.type === "unknown") {
+      this.handleGeneralChat(command.text);
       return;
     }
 
-    // TASK - UPDATE
-    if (command.type === "task" && command.action === "update") {
-      this.updateTaskFromVoice(command.text);
-      return;
-    }
-
-    // TASK - DELETE
-    if (command.type === "task" && command.action === "delete") {
-      this.deleteTaskFromVoice(command.text);
-      return;
-    }
-
-    // CALENDAR - CREATE
-    if (command.type === "calendar" && command.action === "create") {
-      this.createCalendarEventFromVoice(command.text);
-      return;
-    }
-
-    // CALENDAR - SHOW
-    if (command.type === "calendar" && command.action === "show") {
-      this.showCalendarFromVoice();
-      return;
-    }
-
-    // CALENDAR - UPDATE
-    if (command.type === "calendar" && command.action === "update") {
-      this.updateCalendarFromVoice(command.text);
-      return;
-    }
-
-    // CALENDAR - DELETE
-    if (command.type === "calendar" && command.action === "delete") {
-      this.deleteCalendarFromVoice(command.text);
-      return;
-    }
-
-    // NOTE - CREATE
-    if (command.type === "note" && command.action === "create") {
-      this.createNoteFromVoice(command.text);
-      return;
-    }
-
-    // NOTE - SHOW
-    if (command.type === "note" && command.action === "show") {
-      this.showNotesFromVoice();
-      return;
-    }
-
-    // NOTE - UPDATE
-    if (command.type === "note" && command.action === "update") {
-      this.updateNoteFromVoice(command.text);
-      return;
-    }
-
-    // NOTE - DELETE
-    if (command.type === "note" && command.action === "delete") {
-      this.deleteNoteFromVoice(command.text);
-      return;
-    }
-
-    // GOAL - CREATE
-    if (command.type === "goal" && command.action === "create") {
-      this.createGoalFromVoice(command.text);
-      return;
-    }
-
-    // GOAL - SHOW
-    if (command.type === "goal" && command.action === "show") {
-      this.showGoalsFromVoice();
-      return;
-    }
-
-    // GOAL - UPDATE
-    if (command.type === "goal" && command.action === "update") {
-      this.updateGoalFromVoice(command.text);
-      return;
-    }
-
-    // GOAL - DELETE
-    if (command.type === "goal" && command.action === "delete") {
-      this.deleteGoalFromVoice(command.text);
-      return;
-    }
-
-    console.log(
-      "Voice command is recognized but not implemented yet:",
-      command
+    this.showVoiceResponse(
+      "I can help you with tasks, calendar events, notes and goals."
     );
+
+    console.log("Unsupported voice command:", command);
   }
+
+  // ==========================================
+  // JARVIS - GENERAL AI CONVERSATION
+  // ==========================================
+
+  handleGeneralChat(text: string): void {
+    if (!text || !text.trim()) {
+      this.showVoiceResponse("Please tell me what you need help with.");
+      return;
+    }
+
+    console.log("Sending message to Python JARVIS:", text);
+
+    this.jarvisService.chat(text, "nexus-user").subscribe({
+      next: (response: any) => {
+        console.log("JARVIS AI response:", response);
+
+        if (response.success && response.response) {
+          this.showVoiceResponse(response.response);
+        } else {
+          this.showVoiceResponse(
+            response.message || "Sorry, I couldn't generate a response."
+          );
+        }
+      },
+
+      error: (err) => {
+        console.error("JARVIS AI connection error:", err);
+
+        this.showVoiceResponse(
+          "I'm unable to connect to my AI service. Please check whether the JARVIS server is running."
+        );
+      },
+    });
+  }
+
+  // ==========================================
+  // TASK - CREATE
+  // ==========================================
 
   createTaskFromVoice(text: string): void {
     let title = text;
@@ -201,90 +306,352 @@ export class AppComponent {
       /add a todo (to )?/i,
     ];
 
-    for (const pattern of patterns) {
+    patterns.forEach((pattern) => {
       title = title.replace(pattern, "");
-    }
+    });
 
     title = title.trim();
 
     if (!title) {
       this.showVoiceResponse("I could not understand the task title.");
-
       return;
     }
 
     const newTask = {
-      user_id: 1,
-      title: title,
+      user_id: this.currentUserId,
+      title,
       description: "",
       status: "pending",
       priority: "medium",
       due_date: "",
     };
 
-    console.log("Creating task:", newTask);
-
     this.taskService.createTask(newTask).subscribe({
       next: (response) => {
-        console.log("Task created successfully:", response);
-
+        console.log("Task created:", response);
         this.showVoiceResponse(`Task created successfully: ${title}`);
       },
-
       error: (err) => {
-        console.error("Error creating task from voice:", err);
-
+        console.error("Task creation error:", err);
         this.showVoiceResponse("Unable to create the task.");
       },
     });
   }
 
+  // ==========================================
+  // TASK - SHOW
+  // ==========================================
+
+  showTasksFromVoice(): void {
+    this.taskService.getTasks(this.currentUserId).subscribe({
+      next: (response: any) => {
+        const tasks = this.extractArray(response, "tasks");
+
+        console.log("Tasks:", tasks);
+
+        if (tasks.length === 0) {
+          this.showVoiceResponse("You currently have no tasks.");
+          return;
+        }
+
+        const taskList = tasks
+          .map(
+            (task: any, index: number) =>
+              `${index + 1}. ${task.title}, status ${task.status || "pending"}.`
+          )
+          .join("\n");
+
+        this.showVoiceResponse(`Here are your tasks:\n${taskList}`);
+      },
+      error: (err) => {
+        console.error("Task loading error:", err);
+        this.showVoiceResponse("Sorry, I couldn't retrieve your tasks.");
+      },
+    });
+  }
+
+  // ==========================================
+  // TASK - UPDATE
+  // ==========================================
+
+  updateTaskFromVoice(text: string): void {
+    // Recognize: task 17, task ID 17, ID 17, number 17
+    const idMatch = text.match(
+      /\b(?:task\s*(?:id\s*)?|id\s*|number\s*)(\d+)\b/i
+    );
+
+    if (!idMatch) {
+      this.showVoiceResponse(
+        "Please specify the task ID. Example: Update task ID 17 status to completed."
+      );
+      return;
+    }
+
+    const taskId = parseInt(idMatch[1], 10);
+
+    if (taskId <= 0) {
+      this.showVoiceResponse("Please provide a valid task ID.");
+      return;
+    }
+
+    this.taskService.getTask(taskId, this.currentUserId).subscribe({
+      next: (response: any) => {
+        const existingTask = this.extractObject(response, "task");
+
+        if (!existingTask || !existingTask.id) {
+          this.showVoiceResponse(`Could not find task ${taskId}.`);
+          return;
+        }
+
+        // Preserve existing task information
+        const updatedTask: any = {
+          user_id: existingTask.user_id || this.currentUserId,
+          title: existingTask.title || "",
+          description: existingTask.description || "",
+          status: existingTask.status || "pending",
+          priority: existingTask.priority || "medium",
+          due_date: existingTask.due_date || "",
+        };
+
+        let updateMessage = "";
+
+        // STATUS UPDATE
+        const statusMatch = text.match(
+          /\b(?:status|progress)\s+(?:to\s+)?(completed|complete|done|finished|pending|in[\s-]?progress)\b/i
+        );
+
+        if (statusMatch) {
+          const value = statusMatch[1].toLowerCase();
+
+          if (["completed", "complete", "done", "finished"].includes(value)) {
+            updatedTask.status = "completed";
+          } else if (value === "pending") {
+            updatedTask.status = "pending";
+          } else {
+            updatedTask.status = "in-progress";
+          }
+
+          updateMessage = `Task ${taskId} status updated to ${updatedTask.status}.`;
+        }
+
+        // PRIORITY UPDATE
+        else {
+          const priorityMatch = text.match(
+            /\bpriority\s+(?:to\s+)?(low|medium|high|urgent)\b/i
+          );
+
+          if (priorityMatch) {
+            updatedTask.priority = priorityMatch[1].toLowerCase();
+
+            updateMessage = `Task ${taskId} priority updated to ${updatedTask.priority}.`;
+          }
+        }
+
+        // TITLE UPDATE
+        if (!updateMessage) {
+          let title = text
+            .replace(/\bupdate\b/i, "")
+            .replace(/\bedit\b/i, "")
+            .replace(/\bchange\b/i, "")
+            .replace(/\bmodify\b/i, "")
+            .replace(/\btask\s*(?:id\s*)?\d+\b/i, "")
+            .replace(/\bid\s*\d+\b/i, "")
+            .replace(/\bnumber\s*\d+\b/i, "")
+            .replace(/^\s*to\s+/i, "")
+            .trim();
+
+          if (!title) {
+            this.showVoiceResponse(
+              "Please provide the new task title or field value."
+            );
+            return;
+          }
+
+          updatedTask.title = title;
+          updateMessage = `Task ${taskId} title updated successfully.`;
+        }
+
+        // SAVE TO DATABASE
+        this.taskService.updateTask(taskId, updatedTask).subscribe({
+          next: (result) => {
+            console.log("Task updated:", result);
+            this.showVoiceResponse(updateMessage);
+          },
+          error: (err) => {
+            console.error("Task update error:", err);
+            this.showVoiceResponse("Unable to update the task.");
+          },
+        });
+      },
+
+      error: (err) => {
+        console.error("Task fetch error:", err);
+        this.showVoiceResponse(`Could not find task ${taskId}.`);
+      },
+    });
+  }
+
+  // ==========================================
+  // TASK - DELETE
+  // ==========================================
+
+  deleteTaskFromVoice(text: string): void {
+    const idMatch = text.match(
+      /\b(?:task\s*(?:id\s*)?|id\s*|number\s*)(\d+)\b/i
+    );
+
+    if (!idMatch) {
+      this.showVoiceResponse("Please specify the task number.");
+      return;
+    }
+
+    const taskId = parseInt(idMatch[1], 10);
+
+    this.taskService.getTask(taskId, this.currentUserId).subscribe({
+      next: (response: any) => {
+        const task = this.extractObject(response, "task");
+
+        if (!task || !task.id) {
+          this.showVoiceResponse(`Could not find task ${taskId}.`);
+          return;
+        }
+
+        const confirmed = window.confirm(
+          `Are you sure you want to delete task ${taskId}?\n\n"${task.title}"`
+        );
+
+        if (!confirmed) {
+          this.showVoiceResponse("Task deletion cancelled.");
+          return;
+        }
+
+        this.taskService.deleteTask(taskId, this.currentUserId).subscribe({
+          next: (result) => {
+            console.log("Task deleted:", result);
+            this.showVoiceResponse(`Task ${taskId} deleted successfully.`);
+          },
+          error: (err) => {
+            console.error("Task deletion error:", err);
+            this.showVoiceResponse("Unable to delete the task.");
+          },
+        });
+      },
+      error: (err) => {
+        console.error("Task fetch error:", err);
+        this.showVoiceResponse(`Could not find task ${taskId}.`);
+      },
+    });
+  }
+
+  // ==========================================
+  // CALENDAR - CREATE
+  // ==========================================
   createCalendarEventFromVoice(text: string): void {
     let title = text;
 
-    // Remove command phrases
+    // Remove event creation phrases
     const patterns = [
-      /schedule a meeting/i,
-      /schedule meeting/i,
-      /schedule an event/i,
-      /schedule event/i,
-      /create a meeting/i,
-      /create meeting/i,
-      /create an event/i,
-      /create event/i,
-      /add a meeting/i,
-      /add meeting/i,
-      /add an event/i,
-      /add event/i,
+      /schedule a meeting/gi,
+      /schedule meeting/gi,
+      /schedule an event/gi,
+      /schedule event/gi,
+      /create a meeting/gi,
+      /create meeting/gi,
+      /create an event/gi,
+      /create event/gi,
+      /add a meeting/gi,
+      /add meeting/gi,
+      /add an event/gi,
+      /add event/gi,
     ];
 
-    for (const pattern of patterns) {
+    patterns.forEach((pattern) => {
       title = title.replace(pattern, "");
-    }
+    });
 
-    // Detect today / tomorrow
-    let eventDate = new Date();
+    const now = new Date();
+    let eventDate = new Date(now);
+    let dateFound = false;
 
-    if (/\btomorrow\b/i.test(title)) {
-      eventDate.setDate(eventDate.getDate() + 1);
-      title = title.replace(/\btomorrow\b/gi, "");
-    }
-
+    // TODAY
     if (/\btoday\b/i.test(title)) {
+      dateFound = true;
       title = title.replace(/\btoday\b/gi, "");
     }
 
-    // Detect time
+    // TOMORROW
+    if (/\btomorrow\b/i.test(title)) {
+      eventDate.setDate(eventDate.getDate() + 1);
+      dateFound = true;
+      title = title.replace(/\btomorrow\b/gi, "");
+    }
+
+    // DATE FORMAT: 29 November or November 29
+    const dateMatch = title.match(
+      /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\b|\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})\b/i
+    );
+
+    if (dateMatch) {
+      const day = parseInt(dateMatch[1] || dateMatch[4], 10);
+      const monthName = dateMatch[2] || dateMatch[3];
+
+      const months = [
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+      ];
+
+      const month = months.indexOf(monthName.toLowerCase());
+
+      const year = now.getFullYear();
+
+      const candidate = new Date(year, month, day);
+
+      // Validate date
+      if (
+        month < 0 ||
+        candidate.getDate() !== day ||
+        candidate.getMonth() !== month
+      ) {
+        this.showVoiceResponse("Please provide a valid calendar date.");
+        return;
+      }
+
+      eventDate = candidate;
+
+      // If date has already passed this year, use next year
+      if (
+        eventDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      ) {
+        eventDate.setFullYear(year + 1);
+      }
+
+      dateFound = true;
+      title = title.replace(dateMatch[0], "");
+    }
+
+    // TIME: 2:00 AM, 2 AM, 14:00, 2:00 a.m.
+    const timeMatch = title.match(
+      /\b(?:at|on)?\s*(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?\b/i
+    );
+
     let hours = 10;
     let minutes = 0;
-
-    const timeMatch = title.match(/\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
 
     if (timeMatch) {
       hours = parseInt(timeMatch[1], 10);
       minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
 
-      const period = timeMatch[3]?.toLowerCase();
+      const period = timeMatch[3]?.toLowerCase().replace(/\./g, "");
 
       if (period === "pm" && hours < 12) {
         hours += 12;
@@ -294,33 +661,41 @@ export class AppComponent {
         hours = 0;
       }
 
-      // Remove time from title
+      if (
+        minutes > 59 ||
+        (period && (hours > 23 || hours < 0)) ||
+        (!period && hours > 23)
+      ) {
+        this.showVoiceResponse("Please provide a valid meeting time.");
+        return;
+      }
+
+      if (period && parseInt(timeMatch[1], 10) > 12) {
+        this.showVoiceResponse("Please provide a valid meeting time.");
+        return;
+      }
+
       title = title.replace(timeMatch[0], "");
     }
 
-    // Set event start time
     eventDate.setHours(hours, minutes, 0, 0);
 
-    // Default duration = 1 hour
     const endTime = new Date(eventDate);
-
     endTime.setHours(endTime.getHours() + 1);
 
-    // Clean title
-    title = title.replace(/\s+/g, " ").trim();
-
-    // Remove unnecessary words left after parsing
-    title = title.replace(/^for\s+/i, "").trim();
+    // Clean event title
+    title = title
+      .replace(/\b(on|at|for)\b/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
 
     if (!title) {
-      this.showVoiceResponse("I could not understand the meeting title.");
-
-      return;
+      title = "New Nexus Event";
     }
 
     const newEvent = {
-      user_id: 1,
-      title: title,
+      user_id: this.currentUserId,
+      title,
       description: "",
       start_time: eventDate.toISOString(),
       end_time: endTime.toISOString(),
@@ -330,18 +705,180 @@ export class AppComponent {
 
     this.calendarService.createEvent(newEvent).subscribe({
       next: (response) => {
-        console.log("Calendar event created successfully:", response);
-
-        alert(`Meeting scheduled: ${title}`);
+        console.log("Calendar event created:", response);
+        this.showVoiceResponse(`Event scheduled successfully: ${title}`);
       },
-
       error: (err) => {
-        console.error("Error creating calendar event:", err);
-
-        alert("Unable to create the calendar event.");
+        console.error("Calendar creation error:", err);
+        this.showVoiceResponse("Unable to create the calendar event.");
       },
     });
   }
+
+  // ==========================================
+  // CALENDAR - SHOW
+  // ==========================================
+
+  showCalendarFromVoice(): void {
+    this.calendarService.getEvents().subscribe({
+      next: (response: any) => {
+        const events = this.extractArray(response, "events");
+
+        console.log("Calendar events:", events);
+
+        if (events.length === 0) {
+          this.showVoiceResponse("You currently have no calendar events.");
+          return;
+        }
+
+        const eventList = events
+          .map((event: any, index: number) => {
+            const startTime = new Date(event.start_time);
+
+            const formattedDate = startTime.toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            });
+
+            const formattedTime = startTime.toLocaleTimeString("en-IN", {
+              hour: "numeric",
+              minute: "2-digit",
+            });
+
+            return `${index + 1}. ${
+              event.title
+            }, ${formattedDate} at ${formattedTime}.`;
+          })
+          .join("\n");
+
+        this.showVoiceResponse(`Here is your calendar:\n${eventList}`);
+      },
+      error: (err) => {
+        console.error("Calendar loading error:", err);
+        this.showVoiceResponse("Unable to retrieve your calendar.");
+      },
+    });
+  }
+
+  // ==========================================
+  // CALENDAR - UPDATE
+  // ==========================================
+
+  updateCalendarFromVoice(text: string): void {
+    const idMatch = text.match(/\b(?:event|meeting|calendar)\s+(\d+)\b/i);
+
+    if (!idMatch) {
+      this.showVoiceResponse(
+        "Please specify the event number. Example: Update event 2 to Nexus meeting."
+      );
+      return;
+    }
+
+    const eventId = parseInt(idMatch[1], 10);
+
+    const title = text
+      .replace(/update\s+(?:event|meeting|calendar)\s+\d+/i, "")
+      .replace(/edit\s+(?:event|meeting|calendar)\s+\d+/i, "")
+      .replace(/change\s+(?:event|meeting|calendar)\s+\d+/i, "")
+      .replace(/^\s*to\s+/i, "")
+      .trim();
+
+    if (!title) {
+      this.showVoiceResponse("Please provide the new event title.");
+      return;
+    }
+
+    this.calendarService.getEvent(eventId).subscribe({
+      next: (response: any) => {
+        const existingEvent = this.extractObject(response, "event");
+
+        if (!existingEvent || !existingEvent.id) {
+          this.showVoiceResponse(`Could not find event ${eventId}.`);
+          return;
+        }
+
+        const updatedEvent = {
+          user_id: existingEvent.user_id || this.currentUserId,
+          title,
+          description: existingEvent.description || "",
+          start_time: existingEvent.start_time,
+          end_time: existingEvent.end_time,
+        };
+
+        this.calendarService.updateEvent(eventId, updatedEvent).subscribe({
+          next: (result) => {
+            console.log("Calendar event updated:", result);
+            this.showVoiceResponse(`Event ${eventId} updated successfully.`);
+          },
+          error: (err) => {
+            console.error("Calendar update error:", err);
+            this.showVoiceResponse("Unable to update the calendar event.");
+          },
+        });
+      },
+      error: (err) => {
+        console.error("Calendar fetch error:", err);
+        this.showVoiceResponse(`Could not find event ${eventId}.`);
+      },
+    });
+  }
+
+  // ==========================================
+  // CALENDAR - DELETE
+  // ==========================================
+
+  deleteCalendarFromVoice(text: string): void {
+    const idMatch = text.match(
+      /\b(?:(?:event|meeting|calendar)\s*(?:id\s*)?|id\s*)(\d+)\b/i
+    );
+
+    if (!idMatch) {
+      this.showVoiceResponse("Please specify the event number.");
+      return;
+    }
+
+    const eventId = parseInt(idMatch[1], 10);
+
+    this.calendarService.getEvent(eventId).subscribe({
+      next: (response: any) => {
+        const event = this.extractObject(response, "event");
+
+        if (!event || !event.id) {
+          this.showVoiceResponse(`Could not find event ${eventId}.`);
+          return;
+        }
+
+        const confirmed = window.confirm(
+          `Are you sure you want to delete event ${eventId}?\n\n"${event.title}"`
+        );
+
+        if (!confirmed) {
+          this.showVoiceResponse("Calendar event deletion cancelled.");
+          return;
+        }
+
+        this.calendarService.deleteEvent(eventId).subscribe({
+          next: (result) => {
+            console.log("Calendar event deleted:", result);
+            this.showVoiceResponse(`Event ${eventId} deleted successfully.`);
+          },
+          error: (err) => {
+            console.error("Calendar deletion error:", err);
+            this.showVoiceResponse("Unable to delete the calendar event.");
+          },
+        });
+      },
+      error: (err) => {
+        console.error("Calendar fetch error:", err);
+        this.showVoiceResponse(`Could not find event ${eventId}.`);
+      },
+    });
+  }
+
+  // ==========================================
+  // NOTE - CREATE
+  // ==========================================
 
   createNoteFromVoice(text: string): void {
     let content = text;
@@ -361,9 +898,9 @@ export class AppComponent {
       /write note /i,
     ];
 
-    for (const pattern of patterns) {
+    patterns.forEach((pattern) => {
       content = content.replace(pattern, "");
-    }
+    });
 
     content = content.trim();
 
@@ -373,25 +910,203 @@ export class AppComponent {
     }
 
     const newNote = {
-      user_id: 1,
+      user_id: this.currentUserId,
       title: "Voice Note",
-      content: content,
+      content,
     };
 
     this.noteService.createNote(newNote).subscribe({
       next: (response) => {
-        console.log("Note created successfully:", response);
-
+        console.log("Note created:", response);
         this.showVoiceResponse(`Note created successfully: ${content}`);
       },
-
       error: (err) => {
-        console.error("Error creating note from voice:", err);
-
+        console.error("Note creation error:", err);
         this.showVoiceResponse("Unable to create the note.");
       },
     });
   }
+
+  // ==========================================
+  // NOTE - SHOW
+  // ==========================================
+
+  showNotesFromVoice(): void {
+    this.noteService.getNotes().subscribe({
+      next: (response: any) => {
+        const notes = this.extractArray(response, "notes");
+
+        console.log("Notes:", notes);
+
+        if (notes.length === 0) {
+          this.showVoiceResponse("You currently have no notes.");
+          return;
+        }
+
+        const noteList = notes
+          .map(
+            (note: any, index: number) =>
+              `${index + 1}. ${note.title}. ${note.content}`
+          )
+          .join("\n");
+
+        this.showVoiceResponse(`Here are your notes:\n${noteList}`);
+      },
+      error: (err) => {
+        console.error("Note loading error:", err);
+        this.showVoiceResponse("Sorry, I couldn't retrieve your notes.");
+      },
+    });
+  }
+
+  // ==========================================
+  // NOTE - UPDATE
+  // ==========================================
+
+  updateNoteFromVoice(text: string): void {
+    const numberMatch = text.match(/\bnote\s+(\d+)\b/i);
+
+    if (!numberMatch) {
+      this.showVoiceResponse(
+        "Please specify the note number. Example: Update note 1 to Review Nexus documentation."
+      );
+      return;
+    }
+
+    const noteNumber = parseInt(numberMatch[1], 10);
+
+    if (noteNumber <= 0) {
+      this.showVoiceResponse("Please provide a valid note number.");
+      return;
+    }
+
+    const content = text
+      .replace(/update\s+note\s+\d+/i, "")
+      .replace(/edit\s+note\s+\d+/i, "")
+      .replace(/change\s+note\s+\d+/i, "")
+      .replace(/^\s*to\s+/i, "")
+      .trim();
+
+    if (!content) {
+      this.showVoiceResponse("Please provide the new note content.");
+      return;
+    }
+
+    this.noteService.getNotes().subscribe({
+      next: (response: any) => {
+        const notes = this.extractArray(response, "notes");
+
+        if (notes.length === 0) {
+          this.showVoiceResponse("You currently have no notes.");
+          return;
+        }
+
+        if (noteNumber > notes.length) {
+          this.showVoiceResponse(`There are only ${notes.length} notes.`);
+          return;
+        }
+
+        const existingNote = notes[noteNumber - 1];
+
+        if (!existingNote?.id) {
+          this.showVoiceResponse("Could not identify the selected note.");
+          return;
+        }
+
+        const updatedNote = {
+          user_id: existingNote.user_id || this.currentUserId,
+          title: existingNote.title || "Voice Note",
+          content,
+        };
+
+        this.noteService.updateNote(existingNote.id, updatedNote).subscribe({
+          next: (result) => {
+            console.log("Note updated:", result);
+            this.showVoiceResponse(`Note ${noteNumber} updated successfully.`);
+          },
+          error: (err) => {
+            console.error("Note update error:", err);
+            this.showVoiceResponse("Unable to update the note.");
+          },
+        });
+      },
+      error: (err) => {
+        console.error("Notes fetch error:", err);
+        this.showVoiceResponse("Unable to fetch your notes.");
+      },
+    });
+  }
+
+  // ==========================================
+  // NOTE - DELETE
+  // ==========================================
+
+  deleteNoteFromVoice(text: string): void {
+    const numberMatch = text.match(/\bnote\s+(\d+)\b/i);
+
+    if (!numberMatch) {
+      this.showVoiceResponse("Please specify the note number.");
+      return;
+    }
+
+    const noteNumber = parseInt(numberMatch[1], 10);
+
+    if (noteNumber <= 0) {
+      this.showVoiceResponse("Please provide a valid note number.");
+      return;
+    }
+
+    this.noteService.getNotes().subscribe({
+      next: (response: any) => {
+        const notes = this.extractArray(response, "notes");
+
+        if (notes.length === 0) {
+          this.showVoiceResponse("You currently have no notes.");
+          return;
+        }
+
+        if (noteNumber > notes.length) {
+          this.showVoiceResponse(`There are only ${notes.length} notes.`);
+          return;
+        }
+
+        const note = notes[noteNumber - 1];
+
+        if (!note?.id) {
+          this.showVoiceResponse("Could not identify the selected note.");
+          return;
+        }
+
+        const confirmed = window.confirm(
+          `Are you sure you want to delete note ${noteNumber}?\n\n"${note.title}"`
+        );
+
+        if (!confirmed) {
+          this.showVoiceResponse("Note deletion cancelled.");
+          return;
+        }
+
+        this.noteService.deleteNote(note.id).subscribe({
+          next: (result) => {
+            console.log("Note deleted:", result);
+            this.showVoiceResponse(`Note ${noteNumber} deleted successfully.`);
+          },
+          error: (err) => {
+            console.error("Note deletion error:", err);
+            this.showVoiceResponse("Unable to delete the note.");
+          },
+        });
+      },
+      error: (err) => {
+        console.error("Notes fetch error:", err);
+        this.showVoiceResponse("Unable to fetch your notes.");
+      },
+    });
+  }
+
+  // ==========================================
+  // GOAL - CREATE
+  // ==========================================
 
   createGoalFromVoice(text: string): void {
     let title = text;
@@ -423,9 +1138,9 @@ export class AppComponent {
       /set goal /i,
     ];
 
-    for (const pattern of patterns) {
+    patterns.forEach((pattern) => {
       title = title.replace(pattern, "");
-    }
+    });
 
     title = title.trim();
 
@@ -435,561 +1150,76 @@ export class AppComponent {
     }
 
     const newGoal = {
-      user_id: 1,
-      title: title,
+      user_id: this.currentUserId,
+      title,
       description: "",
       progress: 0,
       target_date: "",
     };
 
-    console.log("Creating goal:", newGoal);
-
     this.goalService.createGoal(newGoal).subscribe({
       next: (response) => {
-        console.log("Goal created successfully:", response);
-
+        console.log("Goal created:", response);
         this.showVoiceResponse(`Goal created successfully: ${title}`);
       },
-
       error: (err) => {
-        console.error("Error creating goal from voice:", err);
-
+        console.error("Goal creation error:", err);
         this.showVoiceResponse("Unable to create the goal.");
       },
     });
   }
 
-  showTasksFromVoice(): void {
-    console.log("Fetching tasks for voice command...");
-
-    this.taskService.getTasks(this.currentUserId).subscribe({
-      next: (tasks) => {
-        console.log("Tasks received:", tasks);
-
-        if (!tasks || tasks.length === 0) {
-          alert("You currently have no tasks.");
-
-          return;
-        }
-
-        const taskList = tasks
-          .map((task: any, index: number) => {
-            return `${index + 1}. ${task.title}`;
-          })
-          .join("\n");
-
-        alert(`Your tasks:\n\n${taskList}`);
-      },
-
-      error: (err) => {
-        console.error("Error fetching tasks:", err);
-
-        alert("Unable to fetch your tasks.");
-      },
-    });
-  }
-
-  showCalendarFromVoice(): void {
-    console.log("Fetching calendar events for voice command...");
-
-    this.calendarService.getEvents().subscribe({
-      next: (events) => {
-        console.log("Calendar events received:", events);
-
-        if (!events || events.length === 0) {
-          alert("You currently have no calendar events.");
-
-          return;
-        }
-
-        const eventList = events
-          .map((event: any, index: number) => {
-            const startTime = new Date(event.start_time);
-
-            const formattedDate = startTime.toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            });
-
-            const formattedTime = startTime.toLocaleTimeString("en-IN", {
-              hour: "numeric",
-              minute: "2-digit",
-            });
-
-            return `${index + 1}. ${
-              event.title
-            }\n   ${formattedDate} at ${formattedTime}`;
-          })
-          .join("\n\n");
-
-        alert(`Your calendar:\n\n${eventList}`);
-      },
-
-      error: (err) => {
-        console.error("Error fetching calendar:", err);
-
-        alert("Unable to fetch your calendar.");
-      },
-    });
-  }
-
-  showNotesFromVoice(): void {
-    console.log("Fetching notes for voice command...");
-
-    this.noteService.getNotes().subscribe({
-      next: (notes) => {
-        console.log("Notes received:", notes);
-
-        if (!notes || notes.length === 0) {
-          alert("You currently have no notes.");
-          return;
-        }
-
-        const noteList = notes
-          .map((note: any, index: number) => {
-            return `${index + 1}. ${note.title}\n   ${note.content}`;
-          })
-          .join("\n\n");
-
-        alert(`Your notes:\n\n${noteList}`);
-      },
-
-      error: (err) => {
-        console.error("Error fetching notes:", err);
-
-        alert("Unable to fetch your notes.");
-      },
-    });
-  }
+  // ==========================================
+  // GOAL - SHOW
+  // ==========================================
 
   showGoalsFromVoice(): void {
-    console.log("Fetching goals using voice command...");
-
     this.goalService.getGoals().subscribe({
-      next: (goals: any[]) => {
-        console.log("Goals fetched:", goals);
+      next: (response: any) => {
+        const goals = this.extractArray(response, "goals");
 
-        if (!goals || goals.length === 0) {
+        console.log("Goals:", goals);
+
+        if (goals.length === 0) {
           this.showVoiceResponse("You currently have no saved goals.");
-
           return;
         }
 
-        let message = `You have ${goals.length} goals. `;
+        const goalList = goals
+          .map(
+            (goal: any, index: number) =>
+              `${index + 1}. ${goal.title}, ${
+                goal.progress || 0
+              } percent completed.`
+          )
+          .join("\n");
 
-        goals.forEach((goal, index) => {
-          message +=
-            `Goal ${index + 1}: ${goal.title}, ` +
-            `${goal.progress || 0} percent completed. `;
-        });
-
-        console.log("Goal summary:", message);
-
-        this.showVoiceResponse(message);
+        this.showVoiceResponse(`Here are your goals:\n${goalList}`);
       },
-
       error: (err) => {
-        console.error("Error fetching goals:", err);
-
-        this.showVoiceResponse("Unable to retrieve your goals.");
+        console.error("Goal loading error:", err);
+        this.showVoiceResponse("Sorry, I couldn't retrieve your goals.");
       },
     });
   }
 
-  updateTaskFromVoice(text: string): void {
-    const idMatch = text.match(/\btask\s+(\d+)\b/i);
-
-    if (!idMatch) {
-      alert(
-        "Please specify the task number. Example: Update task 1 to Finish Nexus"
-      );
-      return;
-    }
-
-    const taskId = parseInt(idMatch[1], 10);
-
-    let title = text;
-
-    // Remove command phrases
-    title = title.replace(/update\s+task\s+\d+/i, "");
-
-    title = title.replace(/edit\s+task\s+\d+/i, "");
-
-    title = title.replace(/change\s+task\s+\d+/i, "");
-
-    // Remove "to"
-    title = title.replace(/^\s*to\s+/i, "");
-
-    title = title.trim();
-
-    if (!title) {
-      this.showVoiceResponse("I could not understand the task title.");
-      return;
-    }
-
-    console.log("Fetching existing task:", taskId);
-
-    // First fetch the existing task
-    this.taskService.getTask(taskId, this.currentUserId).subscribe({
-      next: (existingTask) => {
-        console.log("Existing task:", existingTask);
-
-        // Preserve existing fields
-        const updatedTask = {
-          user_id: existingTask.user_id,
-          title: title,
-          description: existingTask.description || "",
-          status: existingTask.status || "pending",
-          priority: existingTask.priority || "medium",
-          due_date: existingTask.due_date || "",
-        };
-
-        console.log("Updating task with:", updatedTask);
-
-        this.taskService.updateTask(taskId, updatedTask).subscribe({
-          next: (response) => {
-            console.log("Task updated successfully:", response);
-
-            alert(`Task ${taskId} updated successfully.`);
-          },
-
-          error: (err) => {
-            console.error("Error updating task:", err);
-
-            alert("Unable to update the task.");
-          },
-        });
-      },
-
-      error: (err) => {
-        console.error("Error fetching task:", err);
-
-        alert(`Could not find task ${taskId}.`);
-      },
-    });
-  }
-  deleteTaskFromVoice(text: string): void {
-    const idMatch = text.match(/\btask\s+(\d+)\b/i);
-
-    if (!idMatch) {
-      alert("Please specify the task number. Example: Delete task 3");
-
-      return;
-    }
-
-    const taskId = parseInt(idMatch[1], 10);
-
-    // First fetch the task
-    this.taskService.getTask(taskId, this.currentUserId).subscribe({
-      next: (task) => {
-        console.log("Task selected for deletion:", task);
-
-        const confirmed = window.confirm(
-          `Are you sure you want to delete task ${taskId}?\n\n"${task.title}"`
-        );
-
-        if (!confirmed) {
-          console.log("Task deletion cancelled.");
-
-          return;
-        }
-
-        // Delete only after confirmation
-        this.taskService.deleteTask(taskId, this.currentUserId).subscribe({
-          next: (response) => {
-            console.log("Task deleted successfully:", response);
-
-            alert(`Task ${taskId} deleted successfully.`);
-          },
-
-          error: (err) => {
-            console.error("Error deleting task:", err);
-
-            alert("Unable to delete the task.");
-          },
-        });
-      },
-
-      error: (err) => {
-        console.error("Error finding task:", err);
-
-        alert(`Could not find task ${taskId}.`);
-      },
-    });
-  }
-
-  updateCalendarFromVoice(text: string): void {
-    const idMatch = text.match(/\b(?:event|meeting|calendar)\s+(\d+)\b/i);
-
-    if (!idMatch) {
-      alert(
-        "Please specify the event number. Example: Update event 2 to Nexus meeting"
-      );
-      return;
-    }
-
-    const eventId = parseInt(idMatch[1], 10);
-
-    let title = text;
-
-    title = title.replace(/update\s+(?:event|meeting|calendar)\s+\d+/i, "");
-
-    title = title.replace(/edit\s+(?:event|meeting|calendar)\s+\d+/i, "");
-
-    title = title.replace(/change\s+(?:event|meeting|calendar)\s+\d+/i, "");
-
-    title = title.replace(/^\s*to\s+/i, "");
-
-    title = title.trim();
-
-    if (!title) {
-      this.showVoiceResponse("I could not understand the meeting title.");
-      return;
-    }
-
-    this.calendarService.getEvent(eventId).subscribe({
-      next: (existingEvent) => {
-        const updatedEvent = {
-          user_id: existingEvent.user_id,
-          title: title,
-          description: existingEvent.description || "",
-          start_time: existingEvent.start_time,
-          end_time: existingEvent.end_time,
-        };
-
-        console.log("Updating calendar event:", eventId, updatedEvent);
-
-        this.calendarService.updateEvent(eventId, updatedEvent).subscribe({
-          next: (response) => {
-            console.log("Calendar event updated:", response);
-
-            alert(`Event ${eventId} updated successfully.`);
-          },
-
-          error: (err) => {
-            console.error("Error updating calendar event:", err);
-
-            alert("Unable to update the calendar event.");
-          },
-        });
-      },
-
-      error: (err) => {
-        console.error("Error finding calendar event:", err);
-
-        alert(`Could not find event ${eventId}.`);
-      },
-    });
-  }
-
-  deleteCalendarFromVoice(text: string): void {
-    const idMatch = text.match(/\b(?:event|meeting|calendar)\s+(\d+)\b/i);
-
-    if (!idMatch) {
-      alert("Please specify the event number. Example: Delete event 2");
-      return;
-    }
-
-    const eventId = parseInt(idMatch[1], 10);
-
-    this.calendarService.getEvent(eventId).subscribe({
-      next: (event) => {
-        const confirmed = window.confirm(
-          `Are you sure you want to delete event ${eventId}?\n\n"${event.title}"`
-        );
-
-        if (!confirmed) {
-          console.log("Calendar event deletion cancelled.");
-
-          return;
-        }
-
-        this.calendarService.deleteEvent(eventId).subscribe({
-          next: (response) => {
-            console.log("Calendar event deleted successfully:", response);
-
-            alert(`Event ${eventId} deleted successfully.`);
-          },
-
-          error: (err) => {
-            console.error("Error deleting calendar event:", err);
-
-            alert("Unable to delete the calendar event.");
-          },
-        });
-      },
-
-      error: (err) => {
-        console.error("Error finding calendar event:", err);
-
-        alert(`Could not find event ${eventId}.`);
-      },
-    });
-  }
-
-  updateNoteFromVoice(text: string): void {
-    const numberMatch = text.match(/\bnote\s+(\d+)\b/i);
-
-    if (!numberMatch) {
-      alert(
-        "Please specify the note number. Example: Update note 1 to Review Nexus documentation"
-      );
-      return;
-    }
-
-    const noteNumber = parseInt(numberMatch[1], 10);
-
-    if (noteNumber <= 0) {
-      alert("Please provide a valid note number.");
-      return;
-    }
-
-    let content = text;
-
-    content = content.replace(/update\s+note\s+\d+/i, "");
-
-    content = content.replace(/edit\s+note\s+\d+/i, "");
-
-    content = content.replace(/change\s+note\s+\d+/i, "");
-
-    content = content.replace(/^\s*to\s+/i, "");
-
-    content = content.trim();
-
-    if (!content) {
-      alert("Please provide the new note content.");
-      return;
-    }
-
-    this.noteService.getNotes().subscribe({
-      next: (notes) => {
-        if (!notes || notes.length === 0) {
-          alert("You currently have no notes.");
-          return;
-        }
-
-        if (noteNumber > notes.length) {
-          alert(`There are only ${notes.length} notes.`);
-          return;
-        }
-
-        const existingNote = notes[noteNumber - 1];
-
-        const noteId = existingNote.id;
-
-        const updatedNote = {
-          user_id: existingNote.user_id,
-          title: existingNote.title || "Voice Note",
-          content: content,
-        };
-
-        console.log(
-          "Updating note:",
-          noteNumber,
-          "Database ID:",
-          noteId,
-          updatedNote
-        );
-
-        this.noteService.updateNote(noteId, updatedNote).subscribe({
-          next: (response) => {
-            console.log("Note updated successfully:", response);
-
-            alert(`Note ${noteNumber} updated successfully.`);
-          },
-
-          error: (err) => {
-            console.error("Error updating note:", err);
-
-            alert("Unable to update the note.");
-          },
-        });
-      },
-
-      error: (err) => {
-        console.error("Error fetching notes:", err);
-
-        alert("Unable to fetch your notes.");
-      },
-    });
-  }
-
-  deleteNoteFromVoice(text: string): void {
-    const numberMatch = text.match(/\bnote\s+(\d+)\b/i);
-
-    if (!numberMatch) {
-      alert("Please specify the note number. Example: Delete note 1");
-      return;
-    }
-
-    const noteNumber = parseInt(numberMatch[1], 10);
-
-    if (noteNumber <= 0) {
-      alert("Please provide a valid note number.");
-      return;
-    }
-
-    this.noteService.getNotes().subscribe({
-      next: (notes) => {
-        if (!notes || notes.length === 0) {
-          alert("You currently have no notes.");
-          return;
-        }
-
-        if (noteNumber > notes.length) {
-          alert(`There are only ${notes.length} notes.`);
-          return;
-        }
-
-        const note = notes[noteNumber - 1];
-
-        const noteId = note.id;
-
-        const confirmed = window.confirm(
-          `Are you sure you want to delete note ${noteNumber}?\n\n"${note.title}"\n\n${note.content}`
-        );
-
-        if (!confirmed) {
-          console.log("Note deletion cancelled.");
-
-          return;
-        }
-
-        this.noteService.deleteNote(noteId).subscribe({
-          next: (response) => {
-            console.log("Note deleted successfully:", response);
-
-            alert(`Note ${noteNumber} deleted successfully.`);
-          },
-
-          error: (err) => {
-            console.error("Error deleting note:", err);
-
-            alert("Unable to delete the note.");
-          },
-        });
-      },
-
-      error: (err) => {
-        console.error("Error fetching notes:", err);
-
-        alert("Unable to fetch your notes.");
-      },
-    });
-  }
+  // ==========================================
+  // GOAL - UPDATE
+  // ==========================================
 
   updateGoalFromVoice(text: string): void {
-    const numberMatch = text.match(/\bgoal\s+(\d+)\b/i);
+    const idMatch = text.match(
+      /\b(?:goal\s*(?:id\s*)?|id\s*|number\s*)(\d+)\b/i
+    );
 
-    if (!numberMatch) {
+    if (!idMatch) {
       this.showVoiceResponse(
-        "Please specify the goal number. Example: Update goal 1 progress to 75 percent."
+        "Please specify the goal number. Example: Update goal 2 progress to 75 percent."
       );
       return;
     }
 
-    const goalNumber = parseInt(numberMatch[1], 10);
+    const goalNumber = parseInt(idMatch[1], 10);
 
     if (goalNumber <= 0) {
       this.showVoiceResponse("Please provide a valid goal number.");
@@ -997,115 +1227,104 @@ export class AppComponent {
     }
 
     this.goalService.getGoals().subscribe({
-      next: (goals) => {
-        if (!goals || goals.length === 0) {
+      next: (response: any) => {
+        const goals = this.extractArray(response, "goals");
+
+        if (!goals.length) {
           this.showVoiceResponse("You currently have no goals.");
           return;
         }
 
-        if (goalNumber > goals.length) {
-          this.showVoiceResponse(`There are only ${goals.length} goals.`);
+        // Explicit ID means database ID.
+        const explicitId = /\b(?:goal\s*)?id\s*\d+\b/i.test(text);
+
+        const existingGoal = explicitId
+          ? goals.find((goal: any) => Number(goal.id) === goalNumber)
+          : goals[goalNumber - 1];
+
+        if (!existingGoal) {
+          this.showVoiceResponse(`Could not find goal ${goalNumber}.`);
           return;
         }
 
-        const existingGoal = goals[goalNumber - 1];
-        const goalId = existingGoal.id;
-
-        // Check whether the command contains a progress percentage
-        const progressMatch = text.match(
-          /(?:progress|completion|completed)\s+(?:to\s+)?(\d{1,3})\s*(?:percent|%)/i
-        );
-
-        let updatedGoal: any = {
-          user_id: existingGoal.user_id,
+        const updatedGoal: any = {
+          user_id: existingGoal.user_id || this.currentUserId,
           title: existingGoal.title,
           description: existingGoal.description || "",
           progress: existingGoal.progress || 0,
           target_date: existingGoal.target_date || "",
         };
 
-        // Update progress
-        if (progressMatch) {
+        const progressMatch = text.match(
+          /\b(?:progress|completion)\s+(?:to\s+)?(\d{1,3})\s*(?:percent|%)?/i
+        );
+
+        let updateMessage = "";
+
+        if (/\b(complete|completed|finish|finished|done)\b/i.test(text)) {
+          updatedGoal.progress = 100;
+          updateMessage = `Goal ${goalNumber} marked as completed.`;
+        } else if (progressMatch) {
           const progress = parseInt(progressMatch[1], 10);
 
           if (progress < 0 || progress > 100) {
             this.showVoiceResponse(
-              "Progress must be between 0 and 100 percent."
+              "Goal progress must be between 0 and 100 percent."
             );
             return;
           }
 
           updatedGoal.progress = progress;
+          updateMessage = `Goal ${goalNumber} progress updated to ${progress} percent.`;
         } else {
-          // Otherwise, update the goal title
-          let title = text;
-
-          title = title.replace(/update\s+goal\s+\d+/i, "");
-
-          title = title.replace(/edit\s+goal\s+\d+/i, "");
-
-          title = title.replace(/change\s+goal\s+\d+/i, "");
-
-          title = title.replace(/^\s*to\s+/i, "");
-
-          title = title.trim();
+          const title = text
+            .replace(/\bupdate\b/i, "")
+            .replace(/\bedit\b/i, "")
+            .replace(/\bchange\b/i, "")
+            .replace(/\bmodify\b/i, "")
+            .replace(/\bgoal\s*(?:id\s*)?\d+\b/i, "")
+            .replace(/\bid\s*\d+\b/i, "")
+            .replace(/\bnumber\s*\d+\b/i, "")
+            .replace(/^\s*to\s+/i, "")
+            .trim();
 
           if (!title) {
-            this.showVoiceResponse(
-              "I could not understand the new goal title."
-            );
+            this.showVoiceResponse("Please provide the new goal title.");
             return;
           }
 
           updatedGoal.title = title;
+          updateMessage = `Goal ${goalNumber} title updated successfully.`;
         }
 
-        console.log(
-          "Updating goal:",
-          goalNumber,
-          "Database ID:",
-          goalId,
-          updatedGoal
-        );
-
-        this.goalService.updateGoal(goalId, updatedGoal).subscribe({
-          next: (response) => {
-            console.log("Goal updated successfully:", response);
-
-            if (progressMatch) {
-              this.showVoiceResponse(
-                `Goal ${goalNumber} progress updated to ${updatedGoal.progress} percent.`
-              );
-            } else {
-              this.showVoiceResponse(
-                `Goal ${goalNumber} title updated successfully.`
-              );
-            }
+        this.goalService.updateGoal(existingGoal.id, updatedGoal).subscribe({
+          next: (result) => {
+            console.log("Goal updated:", result);
+            this.showVoiceResponse(updateMessage);
           },
-
           error: (err) => {
-            console.error("Error updating goal:", err);
-
+            console.error("Goal update error:", err);
             this.showVoiceResponse("Unable to update the goal.");
           },
         });
       },
 
       error: (err) => {
-        console.error("Error fetching goals:", err);
-
+        console.error("Goals fetch error:", err);
         this.showVoiceResponse("Unable to fetch your goals.");
       },
     });
   }
 
+  // ==========================================
+  // GOAL - DELETE
+  // ==========================================
+
   deleteGoalFromVoice(text: string): void {
     const numberMatch = text.match(/\bgoal\s+(\d+)\b/i);
 
     if (!numberMatch) {
-      this.showVoiceResponse(
-        "Please specify the goal number. Example: Delete goal 1."
-      );
+      this.showVoiceResponse("Please specify the goal number.");
       return;
     }
 
@@ -1117,8 +1336,10 @@ export class AppComponent {
     }
 
     this.goalService.getGoals().subscribe({
-      next: (goals) => {
-        if (!goals || goals.length === 0) {
+      next: (response: any) => {
+        const goals = this.extractArray(response, "goals");
+
+        if (goals.length === 0) {
           this.showVoiceResponse("You currently have no goals.");
           return;
         }
@@ -1129,7 +1350,11 @@ export class AppComponent {
         }
 
         const goal = goals[goalNumber - 1];
-        const goalId = goal.id;
+
+        if (!goal?.id) {
+          this.showVoiceResponse("Could not identify the selected goal.");
+          return;
+        }
 
         const confirmed = window.confirm(
           `Are you sure you want to delete goal ${goalNumber}?\n\n"${goal.title}"`
@@ -1140,26 +1365,22 @@ export class AppComponent {
           return;
         }
 
-        this.goalService.deleteGoal(goalId).subscribe({
-          next: (response) => {
-            console.log("Goal deleted successfully:", response);
+        this.goalService.deleteGoal(goal.id).subscribe({
+          next: (result) => {
+            console.log("Goal deleted:", result);
 
             this.showVoiceResponse(
               `Goal ${goalNumber}, ${goal.title}, deleted successfully.`
             );
           },
-
           error: (err) => {
-            console.error("Error deleting goal:", err);
-
+            console.error("Goal deletion error:", err);
             this.showVoiceResponse("Unable to delete the goal.");
           },
         });
       },
-
       error: (err) => {
-        console.error("Error fetching goals:", err);
-
+        console.error("Goals fetch error:", err);
         this.showVoiceResponse("Unable to fetch your goals.");
       },
     });

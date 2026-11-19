@@ -1,149 +1,173 @@
 <div class="dashboard">
 
-  <div class="welcome-section">
-    <div>
-      <span class="eyebrow">PERSONAL INTELLIGENCE HUB</span>
-
-      <h1>Welcome back, Sakshi.</h1>
-
-
-      <p>
-        Your workspace is ready. Here's an overview of what needs your
-        attention today.
-      </p>
-    </div>
-
-    <div class="date-card">
-      <span>WORKSPACE</span>
-      <strong>ACTIVE</strong>
-    </div>
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    Loading your workspace...
   </div>
 
-
-  <div class="stats-grid">
-
-    <div class="stat-card">
-      <span class="stat-label">TASKS</span>
-      <strong>12</strong>
-      <small>3 pending today</small>
-    </div>
-
-    <div class="stat-card">
-      <span class="stat-label">GOALS</span>
-      <strong>4</strong>
-      <small>68% average progress</small>
-    </div>
-
-    <div class="stat-card">
-      <span class="stat-label">NOTES</span>
-      <strong>18</strong>
-      <small>2 updated recently</small>
-    </div>
-
-    <div class="stat-card">
-      <span class="stat-label">EVENTS</span>
-      <strong>5</strong>
-      <small>Next event in 2 hours</small>
-    </div>
-
+  <!-- Error -->
+  <div *ngIf="error" class="error">
+    {{ error }}
   </div>
 
+  <ng-container *ngIf="!loading && !error && dashboardData">
 
-  <div class="dashboard-grid">
+    <!-- Welcome Section -->
+    <div class="welcome-section">
+      <div>
+        <span class="eyebrow">PERSONAL INTELLIGENCE HUB</span>
 
-    <div class="panel large-panel">
+        <h1>Welcome back, {{ dashboardData.user?.name || 'User' }}.</h1>
+        
 
-      <div class="panel-header">
-        <div>
-          <span class="panel-eyebrow">TASK MANAGEMENT</span>
-          <h2>Recent Tasks</h2>
-        </div>
+        <p>
+          Your workspace is ready. Here's an overview of what needs your
+          attention today.
+        </p>
+      </div>
+      
 
-        <a routerLink="/tasks">View all →</a>
+      <div class="date-card">
+        <span>WORKSPACE</span>
+        <strong>ACTIVE</strong>
+      </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-grid">
+
+      <div class="stat-card">
+        <span class="stat-label">TASKS</span>
+        <strong>
+          {{ dashboardData.summary?.tasks?.total ?? 0 }}
+        </strong>
+        <small>
+          {{ dashboardData.summary?.tasks?.pending ?? 0 }} pending
+        </small>
       </div>
 
-      <div class="task-item">
-        <div class="task-status completed">✓</div>
-
-        <div class="task-content">
-          <strong>Complete Nexus backend</strong>
-          <span>Backend deployment and API testing</span>
-        </div>
-
-        <span class="priority high">HIGH</span>
+      <div class="stat-card">
+        <span class="stat-label">GOALS</span>
+        <strong>
+          {{ dashboardData.summary?.goals?.total ?? dashboardData.goals?.length ?? 0 }}
+        </strong>
+        <small>
+          {{ dashboardData.summary?.goals?.average_progress ?? 0 }}% average progress
+        </small>
       </div>
 
-      <div class="task-item">
-        <div class="task-status">○</div>
-
-        <div class="task-content">
-          <strong>Build dashboard interface</strong>
-          <span>Create the main Nexus workspace</span>
-        </div>
-
-        <span class="priority medium">MEDIUM</span>
+      <div class="stat-card">
+        <span class="stat-label">NOTES</span>
+        <strong>
+          {{ dashboardData.summary?.notes?.total ?? 0 }}
+        </strong>
+        <small>Your saved notes</small>
       </div>
 
-      <div class="task-item">
-        <div class="task-status">○</div>
-
-        <div class="task-content">
-          <strong>Connect Angular services</strong>
-          <span>Integrate frontend with Render API</span>
-        </div>
-
-        <span class="priority medium">MEDIUM</span>
+      <div class="stat-card">
+        <span class="stat-label">EVENTS</span>
+        <strong>
+          {{ dashboardData.upcoming_events?.length ?? 0 }}
+        </strong>
+        <small>Upcoming events</small>
       </div>
 
     </div>
 
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
 
-    <div class="panel">
+      <!-- Recent Tasks -->
+      <div class="panel large-panel">
 
-      <div class="panel-header">
-        <div>
-          <span class="panel-eyebrow">GOALS</span>
-          <h2>Progress</h2>
+        <div class="panel-header">
+          <div>
+            <span class="panel-eyebrow">TASK MANAGEMENT</span>
+            <h2>Recent Tasks</h2>
+          </div>
+
+          <a routerLink="/tasks">View all →</a>
         </div>
 
-        <a routerLink="/goals">View all →</a>
+        <div class="task-item" *ngFor="let task of dashboardData.recent_tasks">
+
+          <div class="task-status" [class.completed]="task.status === 'completed'">
+            {{ task.status === 'completed' ? '✓' : '○' }}
+          </div>
+
+          <div class="task-content">
+            <strong>{{ task.title }}</strong>
+            <span>{{ task.description || 'No description' }}</span>
+          </div>
+
+          <span class="priority" [ngClass]="task.priority?.toLowerCase()">
+            {{ task.priority || 'MEDIUM' }}
+          </span>
+
+        </div>
+
+        <div class="empty-state" *ngIf="!dashboardData.recent_tasks?.length">
+          No tasks available. Create your first task!
+        </div>
+
       </div>
 
-      <div class="goal">
-        <div class="goal-top">
-          <strong>Launch Nexus</strong>
-          <span>68%</span>
+      <!-- Goals -->
+      <div class="panel">
+
+        <div class="panel-header">
+          <div>
+            <span class="panel-eyebrow">GOALS</span>
+            <h2>Progress</h2>
+          </div>
+
+          <a routerLink="/goals">View all →</a>
         </div>
 
-        <div class="progress">
-          <div class="progress-value" style="width: 68%;"></div>
+        <div class="goal" *ngFor="let goal of dashboardData.goals">
+
+          <div class="goal-top">
+            <strong>{{ goal.title }}</strong>
+            <span>{{ goal.progress || 0 }}%</span>
+          </div>
+
+          <div class="progress">
+            <div class="progress-value" [style.width.%]="goal.progress || 0"></div>
+          </div>
+
         </div>
+
+        <div class="empty-state" *ngIf="!dashboardData.goals?.length">
+          No goals available. Create your first goal!
+        </div>
+
       </div>
 
-      <div class="goal">
-        <div class="goal-top">
-          <strong>Learn Angular</strong>
-          <span>45%</span>
+      <!-- Upcoming Events -->
+      <div class="panel events-panel">
+
+        <div class="panel-header">
+          <div>
+            <span class="panel-eyebrow">SCHEDULE</span>
+            <h2>Upcoming Events</h2>
+          </div>
+
+          <a routerLink="/calendar">View calendar →</a>
         </div>
 
-        <div class="progress">
-          <div class="progress-value" style="width: 45%;"></div>
-        </div>
-      </div>
-
-      <div class="goal">
-        <div class="goal-top">
-          <strong>Build Portfolio</strong>
-          <span>30%</span>
+        <div class="event-item" *ngFor="let event of dashboardData.upcoming_events">
+          <strong>{{ event.title }}</strong>
+          <span>{{ event.start_time | date:'medium' }}</span>
         </div>
 
-        <div class="progress">
-          <div class="progress-value" style="width: 30%;"></div>
+        <div class="empty-state" *ngIf="!dashboardData.upcoming_events?.length">
+          No upcoming events scheduled.
         </div>
+
       </div>
 
     </div>
 
-  </div>
+  </ng-container>
 
 </div>

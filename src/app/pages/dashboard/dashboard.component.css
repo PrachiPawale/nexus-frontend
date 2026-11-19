@@ -91,11 +91,9 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 15px;
 
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.045),
-    rgba(255, 255, 255, 0.018)
-  );
+  background: linear-gradient(145deg,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.018));
 }
 
 .stat-label {
@@ -322,3 +320,40 @@
 
 }
 
+.jarvis-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  width: 100%;
+  min-height: 350px;
+  padding: 25px;
+  margin-bottom: 25px;
+  border: 1px solid rgba(76, 194, 233, 0.2);
+  border-radius: 20px;
+  background: linear-gradient(135deg,
+      rgba(20, 15, 55, 0.9),
+      rgba(5, 10, 25, 0.95));
+}
+
+.jarvis-orb {
+  width: 320px;
+  height: 320px;
+}
+
+.jarvis-info h2 {
+  font-size: 32px;
+  color: #ffffff;
+  letter-spacing: 5px;
+}
+
+.jarvis-info p {
+  color: #aab8d0;
+  font-size: 15px;
+}
+
+.jarvis-info .status {
+  color: #4cc2e9;
+  font-size: 12px;
+  letter-spacing: 2px;
+}

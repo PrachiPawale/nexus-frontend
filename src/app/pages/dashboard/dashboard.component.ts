@@ -1,5 +1,6 @@
 import { Component, OnInit } from "@angular/core";
 import { DashboardService } from "../../services/dashboard.service";
+import { CommonModule } from "@angular/common";
 
 @Component({
   selector: "app-dashboard",
@@ -8,10 +9,10 @@ import { DashboardService } from "../../services/dashboard.service";
 })
 export class DashboardComponent implements OnInit {
   dashboardData: any = null;
+
   loading = true;
   error = "";
 
-  // Temporary user ID for testing
   userId = 1;
 
   constructor(private dashboardService: DashboardService) {}
@@ -25,14 +26,19 @@ export class DashboardComponent implements OnInit {
     this.error = "";
 
     this.dashboardService.getDashboard(this.userId).subscribe({
-      next: (data) => {
-        console.log("Dashboard API response:", data);
+      next: (response: any) => {
+        console.log("Dashboard API Response:", response);
 
-        this.dashboardData = data;
+        // Handle different API response structures
+        this.dashboardData = response?.data || response;
+
+        console.log("Dashboard Data Loaded:", this.dashboardData);
+
         this.loading = false;
       },
+
       error: (err) => {
-        console.error("Dashboard API error:", err);
+        console.error("Dashboard API Error:", err);
 
         this.error = "Unable to load dashboard data.";
         this.loading = false;

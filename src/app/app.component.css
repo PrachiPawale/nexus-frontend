@@ -226,3 +226,9 @@
   }
 
 }
+
+.jarvis-response-text {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
