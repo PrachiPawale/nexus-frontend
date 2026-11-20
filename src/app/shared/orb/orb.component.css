@@ -1,15 +1,15 @@
 :host {
   display: block;
   width: 100%;
-  background: transparent !important;
+  height: 100%;
+  background: transparent;
 }
 
 .orb-container {
   position: relative;
   width: 100%;
-  height: 420px;
-  overflow: hidden;
-  background: transparent !important;
+  height: 100%;
+  overflow: visible;
 }
 
 .orb-canvas {
@@ -18,5 +18,6 @@
   display: block;
   width: 100%;
   height: 100%;
-  background: transparent !important;
+  background: transparent;
+  cursor: pointer;
 }
