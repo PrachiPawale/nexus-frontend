@@ -12,6 +12,7 @@ import { CalendarComponent } from './pages/calendar/calendar.component';
 import { NotesComponent } from './pages/notes/notes.component';
 import { GoalsComponent } from './pages/goals/goals.component';
 import { OrbComponent } from './shared/orb/orb.component';
+import { environment } from 'src/environments/environment';
 
 @NgModule({
   declarations: [
