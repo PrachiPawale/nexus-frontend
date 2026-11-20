@@ -168,8 +168,20 @@
         </div>
 
         <div class="event-item" *ngFor="let event of dashboardData.upcoming_events">
-          <strong>{{ event.title }}</strong>
-          <span>{{ event.start_time | date:'medium' }}</span>
+
+          <div class="event-date">
+            <strong>{{ event.start_time | date:'MMM' | uppercase }}</strong>
+            <span>{{ event.start_time | date:'dd' }}</span>
+          </div>
+
+          <div class="event-details">
+            <strong>{{ event.title }}</strong>
+            <span>{{ event.start_time | date:'EEEE' }}</span>
+            <small>◷ {{ event.start_time | date:'hh:mm a' }}</small>
+          </div>
+
+          <div class="event-indicator"></div>
+
         </div>
 
         <div class="empty-state" *ngIf="!dashboardData.upcoming_events?.length">
