@@ -7,7 +7,7 @@ import { Observable } from 'rxjs';
 })
 export class JarvisService {
 
-  private apiUrl = 'http://127.0.0.1:8000';
+  private apiUrl = 'https://nexus-ai-service-hpkg.onrender.com';
 
   constructor(private http: HttpClient) {}
 
